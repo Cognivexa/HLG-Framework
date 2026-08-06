@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HLG Framework — Live</title>
+<style>
+  :root {
+    --bg: #14151a; --panel: #1c1e24; --panel-2: #232630; --border: #2c2f38;
+    --text: #e6e8ee; --dim: #9096a3; --accent: #2f81f7;
+    --ok: #3fb950; --fail: #f85149; --run: #2f81f7; --skip: #8b8f98; --pending: #3a3d42;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, sans-serif; }
+  header { display: flex; align-items: center; gap: 14px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel); position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  #dot { width: 10px; height: 10px; border-radius: 50%; background: var(--fail); box-shadow: 0 0 6px var(--fail); transition: all .2s; }
+  #dot.live { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  main { padding: 16px 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; max-width: 1500px; margin: 0 auto; }
+  .full { grid-column: 1 / -1; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .panel > .head { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .panel > .head b { font-size: 13px; }
+  .badge { font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .badge.idle { background: #2a2d35; color: var(--dim); }
+  .badge.started, .badge.running { background: rgba(47,129,247,.18); color: var(--run); }
+  .badge.completed, .badge.success, .badge.passed { background: rgba(63,185,80,.16); color: var(--ok); }
+  .badge.failed { background: rgba(248,81,73,.16); color: var(--fail); }
+  .badge.blocked, .badge.skipped { background: rgba(139,143,152,.18); color: var(--skip); }
+  .steps { max-height: 340px; overflow-y: auto; padding: 6px 10px; }
+  .step-row { display: flex; align-items: baseline; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #23252c; font-size: 12.5px; }
+  .step-row:last-child { border-bottom: none; }
+  .dot-sm { width: 8px; height: 8px; border-radius: 50%; flex: none; margin-top: 3px; }
+  .dot-sm.pending { background: var(--pending); }
+  .dot-sm.running { background: var(--run); animation: pulse 1.1s infinite; }
+  .dot-sm.success { background: var(--ok); }
+  .dot-sm.failed { background: var(--fail); }
+  .dot-sm.skipped { background: var(--skip); }
+  @keyframes pulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(47,129,247,.6);} 50% { opacity: .55; box-shadow: 0 0 0 4px rgba(47,129,247,0);} }
+  .step-name { flex: 1; }
+  .step-detail { color: var(--dim); font-size: 11.5px; white-space: pre-wrap; word-break: break-word; margin: 2px 0 0 16px; max-height: 4.4em; overflow: hidden; }
+  .empty { color: var(--dim); font-size: 12.5px; padding: 16px; text-align: center; }
+  #graphCanvas { position: relative; min-height: 260px; overflow: auto; padding: 16px; }
+  .gnode { position: absolute; width: 168px; min-height: 40px; border-radius: 8px; padding: 6px 10px; font-size: 11.5px; border: 1px solid #1e1f22; color: #fff; transition: background .25s; }
+  .gedge { position: absolute; height: 1.5px; background: #444a55; transform-origin: 0 0; }
+  #eventLog { max-height: 260px; overflow-y: auto; padding: 8px 12px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11.5px; }
+  #eventLog div { padding: 2px 0; color: var(--dim); border-bottom: 1px solid #20222a; }
+  #eventLog .lvl-harness { color: #7fb3ff; }
+  #eventLog .lvl-loop { color: #ffd479; }
+  #eventLog .lvl-graph { color: #9be89a; }
+  .memrow { padding: 8px 12px; border-bottom: 1px solid #23252c; font-size: 12px; }
+  .memrow b { color: var(--ok); }
+  .memrow.no b { color: var(--dim); }
+  .evalgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+  .evalcol { padding: 10px 14px; }
+  .evalcol h4 { margin: 0 0 6px; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .04em; }
+  .evalcol + .evalcol { border-left: 1px solid var(--border); }
+  .evalitem { font-size: 12px; padding: 3px 0; display: flex; justify-content: space-between; gap: 8px; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #33363f; border-radius: 4px; }
+
+  #promptToggle { margin-left: auto; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  #promptToggle:hover { background: #2a2d38; }
+  #promptToggle .count { background: var(--accent); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 600; min-width: 14px; text-align: center; }
+  #promptToggle .count.hidden { display: none; }
+  #promptDrawer { position: fixed; top: 0; right: -420px; width: 420px; height: 100vh; background: var(--panel); border-left: 1px solid var(--border); box-shadow: -8px 0 24px rgba(0,0,0,.35); transition: right .25s ease; z-index: 20; display: flex; flex-direction: column; }
+  #promptDrawer.open { right: 0; }
+  #promptDrawer .head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  #promptDrawer .head b { font-size: 14px; }
+  #promptDrawer .headsub { color: var(--dim); font-size: 11.5px; padding: 0 16px 10px; border-bottom: 1px solid var(--border); }
+  #promptClose { background: none; border: none; color: var(--dim); font-size: 18px; cursor: pointer; line-height: 1; }
+  #promptClose:hover { color: var(--text); }
+  #promptList { flex: 1; overflow-y: auto; padding: 8px; }
+  .prompt-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; }
+  .prompt-card .row1 { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .prompt-card .agent { font-weight: 600; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .prompt-card .meta { color: var(--dim); font-size: 11px; display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+  .prompt-card .text-block { background: #16171c; border-radius: 6px; padding: 6px 8px; font-family: "Cascadia Code", Consolas, monospace; font-size: 11px; color: #c7cad3; white-space: pre-wrap; word-break: break-word; max-height: 5.6em; overflow: hidden; cursor: pointer; }
+  .prompt-card .text-block.expanded { max-height: none; }
+  .prompt-card .text-label { color: var(--dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; margin: 6px 0 3px; }
+  .prompt-card .dot-sm.running { display: inline-block; }
+</style>
+</head>
+<body>
+<header>
+  <span id="dot"></span>
+  <h1>HLG Framework</h1>
+  <span class="sub">— live mirror of the desktop app, read-only</span>
+  <button id="promptToggle" onclick="togglePromptDrawer()">
+    AI Prompt Timeline <span class="count hidden" id="promptCount">0</span>
+  </button>
+</header>
+<aside id="promptDrawer">
+  <div class="head">
+    <b>AI Prompt Timeline</b>
+    <button id="promptClose" onclick="togglePromptDrawer()">✕</button>
+  </div>
+  <div class="headsub">Every prompt the app has sent to a model, live — newest first. Click a prompt/result to expand it.</div>
+  <div id="promptList"><div class="empty">No model calls yet.</div></div>
+</aside>
+<main>
+  <section class="panel" id="panel-harness">
+    <div class="head"><b>Harness Engineering</b><span class="badge idle" id="badge-harness">idle</span></div>
+    <div class="steps" id="steps-harness"><div class="empty">No run yet. Save a file in a monitored project.</div></div>
+  </section>
+  <section class="panel" id="panel-loop">
+    <div class="head"><b>Loop Engineering</b><span class="badge idle" id="badge-loop">idle</span></div>
+    <div class="steps" id="steps-loop"><div class="empty">Runs automatically only if enabled in Settings.</div></div>
+  </section>
+  <section class="panel" id="panel-graph">
+    <div class="head"><b>Graph Engineering</b><span class="badge idle" id="badge-graph">idle</span></div>
+    <div class="steps" id="steps-graph"><div class="empty">Runs automatically once Harness (and Loop, if it ran) pass.</div></div>
+  </section>
+
+  <section class="panel full">
+    <div class="head"><b>Graph Engineering — live agent DAG</b><span class="sub" id="graph-sub">no run yet</span></div>
+    <div id="graphCanvas"><div class="empty">Nodes appear here once a Graph Engineering run starts, positioned and colored the same as the desktop app's Graph tab.</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="head"><b>Eval — deterministic vs. LLM-as-judge</b></div>
+    <div class="evalgrid">
+      <div class="evalcol"><h4>Deterministic checks</h4><div id="eval-det"></div></div>
+      <div class="evalcol"><h4>LLM-as-judge</h4><div id="eval-judge"></div></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="head"><b>Memory gate decisions</b><span class="sub">Loop fixes judged worth remembering</span></div>
+    <div id="memlist" style="max-height:260px;overflow-y:auto;"><div class="empty">No fixes have gone through the memory gate yet.</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="head"><b>Release gate</b></div>
+    <div id="releaseGate" class="memrow no"><b>Not yet reached.</b><div style="color:var(--dim);margin-top:4px;">Waiting for a Graph Engineering pass on the current run.</div></div>
+  </section>
+
+  <section class="panel full">
+    <div class="head"><b>Event log</b></div>
+    <div id="eventLog"></div>
+  </section>
+</main>
+
+<script>
+const STATUS_LABEL = { pending: "pending", running: "running", success: "success", failed: "failed", skipped: "skipped" };
+const DETERMINISTIC_IDS = new Set(["build_verification","unit_tests","integration_tests","security_scan","static_analysis","code_quality","dependency_analysis","secret_detection","scan_api_keys","scan_secrets","detect_passwords","detect_private_keys"]);
+const JUDGE_IDS = new Set(["ollama_review","architecture_validation","final_verification","code_improvement","loop_verdict"]);
+const NODE_COLORS = { pending: "#3a3d42", running: "#2f81f7", success: "#3fb950", failed: "#f85149", skipped: "#8b8f98" };
+
+const state = {
+  runs: { harness: null, loop: null, graph: null },     // active run_id per pipeline
+  steps: {},                                             // run_id -> Map(step_id -> event)
+  order: {},                                              // run_id -> [step_id in first-seen order]
+  graphNodes: {},                                         // node_id -> {label, status, depends_on}
+  graphRunId: null,
+  prompts: new Map(),                                     // prompt_id -> latest PromptEvent
+  promptOrder: [],                                        // prompt_id in first-seen order
+};
+const MAX_PROMPTS = 200;
+
+function el(id) { return document.getElementById(id); }
+
+function setBadge(pipeline, status) {
+  const b = el("badge-" + pipeline);
+  b.textContent = status;
+  b.className = "badge " + status;
+}
+
+function logLine(pipelineOrKind, text) {
+  const box = el("eventLog");
+  const div = document.createElement("div");
+  const cls = ["harness", "loop", "graph"].includes(pipelineOrKind) ? "lvl-" + pipelineOrKind : "";
+  if (cls) div.className = cls;
+  const ts = new Date().toLocaleTimeString();
+  div.textContent = `[${ts}] ${text}`;
+  box.insertBefore(div, box.firstChild);
+  while (box.children.length > 300) box.removeChild(box.lastChild);
+}
+
+function renderSteps(pipeline, runId) {
+  const container = el("steps-" + pipeline);
+  const order = state.order[runId] || [];
+  const map = state.steps[runId];
+  if (!map || order.length === 0) return;
+  container.innerHTML = "";
+  for (const stepId of order) {
+    const ev = map.get(stepId);
+    const row = document.createElement("div");
+    row.className = "step-row";
+    row.innerHTML = `<span class="dot-sm ${ev.status}"></span>
+      <div style="flex:1;min-width:0;">
+        <div class="step-name">${escapeHtml(ev.step_name || ev.step_id)}</div>
+        ${ev.detail ? `<div class="step-detail">${escapeHtml(String(ev.detail).slice(0, 400))}</div>` : ""}
+      </div>`;
+    container.appendChild(row);
+  }
+  if (pipeline === "harness") renderEval(runId);
+}
+
+function renderEval(runId) {
+  const map = state.steps[runId];
+  if (!map) return;
+  const det = el("eval-det"), judge = el("eval-judge");
+  det.innerHTML = ""; judge.innerHTML = "";
+  for (const [stepId, ev] of map.entries()) {
+    if (DETERMINISTIC_IDS.has(stepId)) det.appendChild(evalRow(ev));
+    else if (JUDGE_IDS.has(stepId)) judge.appendChild(evalRow(ev));
+  }
+  if (!det.children.length) det.innerHTML = '<div class="empty" style="padding:4px 0;">—</div>';
+  if (!judge.children.length) judge.innerHTML = '<div class="empty" style="padding:4px 0;">—</div>';
+}
+
+function evalRow(ev) {
+  const row = document.createElement("div");
+  row.className = "evalitem";
+  const color = { success: "var(--ok)", failed: "var(--fail)", running: "var(--run)" }[ev.status] || "var(--dim)";
+  row.innerHTML = `<span>${escapeHtml(ev.step_name || ev.step_id)}</span><span style="color:${color};font-weight:600;">${ev.status}</span>`;
+  return row;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+function onStep(ev) {
+  const runId = ev.run_id;
+  if (!state.steps[runId]) { state.steps[runId] = new Map(); state.order[runId] = []; }
+  if (!state.steps[runId].has(ev.step_id)) state.order[runId].push(ev.step_id);
+  state.steps[runId].set(ev.step_id, ev);
+  state.runs[ev.pipeline] = runId;
+  renderSteps(ev.pipeline, runId);
+}
+
+function onPipeline(ev) {
+  setBadge(ev.pipeline, ev.status);
+  if (ev.status === "started") {
+    state.runs[ev.pipeline] = ev.run_id;
+    state.steps[ev.run_id] = new Map();
+    state.order[ev.run_id] = [];
+    el("steps-" + ev.pipeline).innerHTML = '<div class="empty">Running…</div>';
+  }
+  logLine(ev.pipeline, `${ev.pipeline} — ${ev.status}${ev.summary ? ": " + ev.summary : ""}`);
+  if (ev.pipeline === "graph" && ev.status === "completed") {
+    el("releaseGate").className = "memrow";
+    el("releaseGate").innerHTML = `<b>PASSED</b><div style="color:var(--dim);margin-top:4px;">Graph Engineering approved this run — a clean copy is being exported to Downloads.</div>`;
+  } else if (ev.pipeline === "graph" && (ev.status === "failed" || ev.status === "blocked")) {
+    el("releaseGate").className = "memrow no";
+    el("releaseGate").innerHTML = `<b>BLOCKED</b><div style="color:var(--dim);margin-top:4px;">${escapeHtml(ev.summary || "Graph Engineering did not approve this run.")}</div>`;
+  }
+}
+
+function layoutGraph() {
+  const nodes = state.graphNodes;
+  const ids = Object.keys(nodes);
+  const canvas = el("graphCanvas");
+  if (ids.length === 0) return;
+  canvas.innerHTML = "";
+
+  const levels = {};
+  function levelOf(id, seen) {
+    if (id in levels) return levels[id];
+    if (seen.has(id)) return 0; // cycle guard
+    seen.add(id);
+    const deps = (nodes[id].depends_on || []).filter(d => nodes[d]);
+    levels[id] = deps.length === 0 ? 0 : 1 + Math.max(...deps.map(d => levelOf(d, seen)));
+    return levels[id];
+  }
+  ids.forEach(id => levelOf(id, new Set()));
+
+  const columns = {};
+  ids.forEach(id => { const l = levels[id]; (columns[l] = columns[l] || []).push(id); });
+
+  const NODE_W = 168, NODE_H = 44, X_GAP = 210, Y_GAP = 58;
+  const positions = {};
+  Object.keys(columns).sort((a, b) => a - b).forEach(level => {
+    columns[level].forEach((id, row) => { positions[id] = { x: level * X_GAP + 10, y: row * Y_GAP + 10 }; });
+  });
+
+  ids.forEach(id => {
+    const p2 = positions[id];
+    (nodes[id].depends_on || []).forEach(dep => {
+      const p1 = positions[dep];
+      if (!p1) return;
+      const x1 = p1.x + NODE_W, y1 = p1.y + NODE_H / 2, x2 = p2.x, y2 = p2.y + NODE_H / 2;
+      const len = Math.hypot(x2 - x1, y2 - y1);
+      const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+      const line = document.createElement("div");
+      line.className = "gedge";
+      line.style.left = x1 + "px"; line.style.top = y1 + "px";
+      line.style.width = len + "px";
+      line.style.transform = `rotate(${angle}deg)`;
+      canvas.appendChild(line);
+    });
+  });
+
+  ids.forEach(id => {
+    const p = positions[id];
+    const node = nodes[id];
+    const div = document.createElement("div");
+    div.className = "gnode";
+    div.id = "gnode-" + id;
+    div.style.left = p.x + "px"; div.style.top = p.y + "px";
+    div.style.background = NODE_COLORS[node.status] || NODE_COLORS.pending;
+    div.textContent = node.label;
+    canvas.appendChild(div);
+  });
+
+  let maxX = 0, maxY = 0;
+  Object.values(positions).forEach(p => { maxX = Math.max(maxX, p.x + NODE_W); maxY = Math.max(maxY, p.y + NODE_H); });
+  canvas.style.minWidth = (maxX + 20) + "px";
+  canvas.style.minHeight = (maxY + 20) + "px";
+}
+
+function onGraphNode(ev) {
+  if (ev.run_id !== state.graphRunId) {
+    state.graphRunId = ev.run_id;
+    state.graphNodes = {};
+    el("graph-sub").textContent = "run " + ev.run_id;
+  }
+  state.graphNodes[ev.node_id] = { label: ev.node_label, status: ev.status, depends_on: ev.depends_on || [] };
+  const existing = el("gnode-" + ev.node_id);
+  if (existing) {
+    existing.style.background = NODE_COLORS[ev.status] || NODE_COLORS.pending;
+  } else {
+    layoutGraph();
+  }
+}
+
+function onMemoryGate(payload) {
+  const list = el("memlist");
+  if (list.querySelector(".empty")) list.innerHTML = "";
+  const row = document.createElement("div");
+  row.className = "memrow" + (payload.remembered ? "" : " no");
+  row.innerHTML = payload.remembered
+    ? `<b>Remembered:</b> ${escapeHtml(payload.lesson)}`
+    : `<b>Not remembered</b> — run ${escapeHtml(payload.run_id)}`;
+  list.insertBefore(row, list.firstChild);
+  logLine("loop", `memory gate — ${payload.remembered ? "remembered: " + payload.lesson : "not remembered"}`);
+}
+
+function togglePromptDrawer() {
+  el("promptDrawer").classList.toggle("open");
+}
+
+function renderPromptCount() {
+  const running = [...state.prompts.values()].filter(p => p.status === "running").length;
+  const badge = el("promptCount");
+  badge.textContent = running;
+  badge.classList.toggle("hidden", running === 0);
+}
+
+function promptCard(ev) {
+  const card = document.createElement("div");
+  card.className = "prompt-card";
+  const dotClass = ev.status === "running" ? "running" : ev.status === "success" ? "success" : "failed";
+  const ts = (ev.timestamp || "").split("T")[1] || ev.timestamp || "";
+  const elapsed = ev.elapsed_seconds != null ? `${ev.elapsed_seconds.toFixed(1)}s` : "";
+  card.innerHTML = `
+    <div class="row1">
+      <span class="dot-sm ${dotClass}"></span>
+      <span class="agent">${escapeHtml(ev.agent)}</span>
+      <span class="badge ${ev.status}">${ev.status}</span>
+    </div>
+    <div class="meta">
+      <span>${escapeHtml(ev.provider_id)} / ${escapeHtml(ev.model)}</span>
+      ${ts ? `<span>${escapeHtml(ts)}</span>` : ""}
+      ${elapsed ? `<span>${elapsed}</span>` : ""}
+    </div>
+    ${ev.prompt_preview ? `<div class="text-label">Prompt</div><div class="text-block" onclick="this.classList.toggle('expanded')">${escapeHtml(ev.prompt_preview)}</div>` : ""}
+    ${ev.result_preview ? `<div class="text-label">${ev.status === "failed" ? "Error" : "Result"}</div><div class="text-block" onclick="this.classList.toggle('expanded')">${escapeHtml(ev.result_preview)}</div>` : ""}
+  `;
+  return card;
+}
+
+function renderPromptList() {
+  const list = el("promptList");
+  if (state.promptOrder.length === 0) { list.innerHTML = '<div class="empty">No model calls yet.</div>'; return; }
+  list.innerHTML = "";
+  for (let i = state.promptOrder.length - 1; i >= 0; i--) {
+    list.appendChild(promptCard(state.prompts.get(state.promptOrder[i])));
+  }
+}
+
+function onPrompt(ev) {
+  const isNew = !state.prompts.has(ev.prompt_id);
+  state.prompts.set(ev.prompt_id, ev);
+  if (isNew) state.promptOrder.push(ev.prompt_id);
+  while (state.promptOrder.length > MAX_PROMPTS) {
+    state.prompts.delete(state.promptOrder.shift());
+  }
+  renderPromptCount();
+  renderPromptList();
+}
+
+function handleMessage(msg) {
+  switch (msg.type) {
+    case "prompt": onPrompt(msg.payload); break;
+    case "step": onStep(msg.payload); break;
+    case "pipeline": onPipeline(msg.payload); break;
+    case "graph_node": onGraphNode(msg.payload); break;
+    case "memory_gate": onMemoryGate(msg.payload); break;
+    case "file_changed": logLine("file", `file ${msg.payload.change_type}: ${msg.payload.file_path}`); break;
+    case "clean_copy_ready": logLine("export", `clean copy exported — ${msg.payload.file_count} file(s) -> ${msg.payload.destination_path}`); break;
+    case "ollama_status": break; // not surfaced in the mirror; desktop Dashboard covers this
+    case "log": break;
+  }
+}
+
+function connect() {
+  const proto = location.protocol === "https:" ? "wss" : "ws";
+  const ws = new WebSocket(`${proto}://${location.host}/ws`);
+  ws.onopen = () => { el("dot").classList.add("live"); logLine("", "connected to desktop app"); };
+  ws.onclose = () => { el("dot").classList.remove("live"); logLine("", "disconnected — retrying in 2s"); setTimeout(connect, 2000); };
+  ws.onerror = () => ws.close();
+  ws.onmessage = (e) => { try { handleMessage(JSON.parse(e.data)); } catch (err) { /* ignore malformed frame */ } };
+}
+connect();
+</script>
+</body>
+</html>
