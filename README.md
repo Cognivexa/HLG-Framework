@@ -88,6 +88,8 @@ about it.
   (with Auto Run on) instead of exporting code that just regressed. Once
   every reviewer agrees it's clean, it says so and moves on to export.
 
+![1786371854527](image/README/1786371854527.png)
+
 With **Auto Run on**, the whole chain — Harness, Loop, Graph, Code Review —
 keeps retrying and re-chaining automatically, stall-tracked at every stage,
 until it reaches a genuinely clean, passing state or gives up with a clear,
@@ -140,7 +142,7 @@ Disable it or change the port in Settings; reopen it any time from the
 See [`docs/HARNESS_LOOP_GRAPH_DEFINITIONS.md`](docs/HARNESS_LOOP_GRAPH_DEFINITIONS.md)
 for exactly which parts of this naming come from Anthropic's harness-design
 article and which are this project's own design — that distinction is kept
-explicit rather than implied.
+explicit rather than implied.![1786371901533](image/README/1786371901533.png)
 
 ## Skills (`HARNESS.md`)
 
@@ -153,14 +155,14 @@ for where this concept comes from and how it differs from RAG.
 
 ## Model providers
 
-| Provider | Needs a key? | Notes |
-|---|---|---|
-| Ollama (Local) | No | Talks to your local Ollama server (`127.0.0.1:11434` by default) — fully offline. Shows whatever `ollama list` shows on this machine. |
-| Ollama (Remote / Cloud API) | Yes (from `ollama.com/settings/keys`) | Calls `https://ollama.com` directly with your key — separate from `ollama signin` in a terminal, which only affects the Local provider's `:cloud` models. |
-| Google Gemini | Yes | |
-| OpenAI | Yes | |
-| Anthropic | Yes | |
-| HuggingFace | Yes (for chat; search is public) | Type any name in the model box to search the Hub live; gated-repo notices are informational once you've accepted a model's license. |
+| Provider                    | Needs a key?                           | Notes                                                                                                                                                           |
+| --------------------------- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ollama (Local)              | No                                     | Talks to your local Ollama server (`127.0.0.1:11434` by default) — fully offline. Shows whatever `ollama list` shows on this machine.                      |
+| Ollama (Remote / Cloud API) | Yes (from`ollama.com/settings/keys`) | Calls`https://ollama.com` directly with your key — separate from `ollama signin` in a terminal, which only affects the Local provider's `:cloud` models. |
+| Google Gemini               | Yes                                    |                                                                                                                                                                 |
+| OpenAI                      | Yes                                    |                                                                                                                                                                 |
+| Anthropic                   | Yes                                    |                                                                                                                                                                 |
+| HuggingFace                 | Yes (for chat; search is public)       | Type any name in the model box to search the Hub live; gated-repo notices are informational once you've accepted a model's license.                             |
 
 Every provider/model dropdown supports typing to filter — live search for
 HuggingFace, instant local filtering of the already-fetched list for
