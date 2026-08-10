@@ -218,4 +218,4 @@ pytest tests/
 
 ## Developer
 
-Ahsan Saeed
+COGNIVEXA 
