@@ -11,6 +11,12 @@ Every instance of this widget also listens for `bus.api_keys_changed`
 15-second local-Ollama poll) so a model list that was empty because a key
 wasn't entered yet — or because Ollama hadn't finished starting up — fills
 in on its own, without the user having to remember to click Refresh.
+
+If the currently selected provider turns out to be unconfigured or
+unreachable, this widget also auto-switches to whichever provider the user
+actually has configured (see `_try_next_configured_provider` below) — enter
+just one API key anywhere in Settings and every Harness/Loop/Graph/RAG
+selector that isn't already working lands on that provider on its own.
 """
 from __future__ import annotations
 
@@ -27,23 +33,21 @@ from PySide6.QtWidgets import (
 )
 
 from app.core.events import bus
-from app.core.llm.registry import EMBEDDING_CAPABLE_PROVIDER_IDS, PROVIDERS
+from app.core.llm.registry import (
+    CHAT_FALLBACK_ORDER,
+    EMBEDDING_CAPABLE_PROVIDER_IDS,
+    EMBEDDING_FALLBACK_ORDER,
+    PROVIDERS,
+    looks_embedding_only,
+    pick_chat_model,
+    pick_embedding_model,
+)
 from app.core.logging_setup import get_logger
 from app.core.pipeline_worker import run_in_background
 
 logger = get_logger(__name__)
 
 _DEBOUNCE_MS = 800
-
-# Applied automatically once a provider has a usable model list and this
-# selector doesn't have a model chosen yet (a fresh provider switch, or an
-# API key that just went from missing to present) — a solid, verified-working
-# general-purpose default per provider, so the user isn't left picking a
-# model by hand before Harness/Loop/Graph can run. Providers with no entry
-# here fall back to whatever model the fetch happened to return first.
-_DEFAULT_MODELS: dict[str, str] = {
-    "huggingface": "deepseek-ai/DeepSeek-V4-Flash-0731",
-}
 
 
 class ProviderModelSelectorWidget(QWidget):
@@ -64,8 +68,11 @@ class ProviderModelSelectorWidget(QWidget):
         self._llm_client = llm_client
         self._provider_attr = provider_attr
         self._model_attr = model_attr
+        self._embeddings_only = embeddings_only
         self._showing_placeholder = False
         self._gated_model_id: str | None = None
+        self._tried_fallbacks: set[str] = set()
+        self._all_model_names: list[str] = []
 
         self._provider_combo = QComboBox()
         provider_ids = EMBEDDING_CAPABLE_PROVIDER_IDS if embeddings_only else tuple(PROVIDERS.keys())
@@ -109,10 +116,25 @@ class ProviderModelSelectorWidget(QWidget):
         self._gated_notice.hide()
         self._gated_open_btn.hide()
 
+        # Hidden unless this is a chat/review selector (not embeddings_only)
+        # whose currently-resolved model heuristically looks embeddings-only
+        # (e.g. "nomic-embed-text") — a model that can never answer a chat
+        # prompt, so every call through it would otherwise fail with an
+        # opaque "400 Bad Request" and no indication why.
+        self._embed_mismatch_notice = QLabel()
+        self._embed_mismatch_notice.setWordWrap(True)
+        self._embed_mismatch_notice.setStyleSheet("color: #d9a441;")
+        embed_row = QHBoxLayout()
+        embed_row.setContentsMargins(0, 0, 0, 0)
+        embed_row.addSpacing(150)
+        embed_row.addWidget(self._embed_mismatch_notice, 1)
+        self._embed_mismatch_notice.hide()
+
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addLayout(row)
         layout.addLayout(gated_row)
+        layout.addLayout(embed_row)
 
         self._debounce_timer = QTimer(self)
         self._debounce_timer.setSingleShot(True)
@@ -126,7 +148,9 @@ class ProviderModelSelectorWidget(QWidget):
 
         bus.api_keys_changed.connect(self._on_api_keys_changed)
         bus.ollama_status_changed.connect(self._on_ollama_status_changed)
+        bus.model_fallback_applied.connect(self._on_model_fallback_applied)
 
+        self._update_embed_mismatch_notice()
         self._fetch_models()
 
     @staticmethod
@@ -158,21 +182,46 @@ class ProviderModelSelectorWidget(QWidget):
         # `_showing_placeholder=True` for search_text's placeholder guard.
         self._set_placeholder("(loading models…)")
         self._hide_gated_notice()
+        self._update_embed_mismatch_notice()
         self._fetch_models()
 
     def _on_model_text_edited(self) -> None:
         self._showing_placeholder = False
         if self.current_provider_id() == "huggingface":
             self._debounce_timer.start(_DEBOUNCE_MS)
+        else:
+            # No server-side search for these providers — filter what was
+            # already fetched instead of leaving the dropdown static.
+            self._filter_cached_models()
 
     def _on_api_keys_changed(self) -> None:
-        # A key or the remote-Ollama host was just saved somewhere — if it's
-        # relevant to whichever provider this selector currently has picked,
-        # pick up the change without waiting for a manual Refresh click.
+        # A key or the remote-Ollama host was just saved somewhere — if the
+        # provider this selector currently has picked needs a key to work,
+        # re-check now rather than waiting for a manual Refresh click. If
+        # it's still blocked, _fetch_models' own blocker check below will
+        # cascade into whichever provider actually has a key configured.
         provider_id = self.current_provider_id()
         provider = PROVIDERS.get(provider_id)
-        if provider and (provider.requires_api_key or provider_id == "ollama_api"):
+        if provider and provider.requires_api_key:
             self._fetch_models()
+
+    def _on_model_fallback_applied(
+        self, provider_attr: str, model_attr: str, new_provider_id: str, new_model: str, reason: str
+    ) -> None:
+        # Only the selector that actually controls this exact settings pair
+        # cares — e.g. Loop's fix-model selector reacts to a Loop fallback,
+        # Harness's review selector doesn't. Switching the provider combo
+        # here re-triggers _on_provider_changed -> _fetch_models, which lands
+        # on `new_model` on its own via the same pick_chat_model() LLMClient
+        # just used, so there's no need to force-set model text directly.
+        if provider_attr != self._provider_attr or model_attr != self._model_attr:
+            return
+        logger.info(
+            "%s/%s auto-switched to %s after a runtime failure: %s",
+            self._provider_attr, self._model_attr, new_provider_id, reason,
+        )
+        self._tried_fallbacks.clear()
+        self._select_by_data(self._provider_combo, new_provider_id)
 
     def _on_ollama_status_changed(self, available: bool, models: list[str]) -> None:
         if self.current_provider_id() != "ollama_local":
@@ -186,18 +235,89 @@ class ProviderModelSelectorWidget(QWidget):
         setattr(self._settings.models, self._provider_attr, self.current_provider_id())
         setattr(self._settings.models, self._model_attr, self.current_model())
         self._settings.save()
+        self._update_embed_mismatch_notice()
         self.changed.emit()
+
+    def _update_embed_mismatch_notice(self) -> None:
+        if self._embeddings_only or self._showing_placeholder:
+            self._embed_mismatch_notice.hide()
+            return
+        model = self.current_model()
+        if model and looks_embedding_only(model):
+            self._embed_mismatch_notice.setText(
+                f"⚠ {model!r} looks like an embeddings-only model — chat/review calls through it will "
+                "fail. Pick a different model (embedding models belong on the RAG tab's selector only)."
+            )
+            self._embed_mismatch_notice.show()
+        else:
+            self._embed_mismatch_notice.hide()
+
+    def _config_blocker(self, provider_id: str) -> str:
+        """Returns a placeholder message if this provider can't even be
+        attempted yet (missing key/host) — "" if it's configured enough to try."""
+        provider = PROVIDERS.get(provider_id)
+        if provider is None:
+            return "(unknown provider)"
+        if provider.requires_api_key and not self._settings.api_keys.get(provider_id):
+            return "(enter API key in Settings)"
+        # No blocker for ollama_api's remote host: an unset host defaults to
+        # Ollama's own cloud API (see app.core.llm.ollama_remote) — only a
+        # self-hosted remote server needs it typed in, and that's optional.
+        return ""
+
+    def _try_next_configured_provider(self, blocked_provider_id: str, force: bool = False) -> bool:
+        """Rather than leaving the user stuck on a provider that's
+        unconfigured or unreachable, automatically switch to the next
+        untried candidate (from EMBEDDING_FALLBACK_ORDER or
+        CHAT_FALLBACK_ORDER, depending on this selector's purpose) that's at
+        least configured enough to attempt.
+
+        With force=False (an empty model list, or a fetch that failed
+        outright — could just be a transient hiccup), this only kicks in
+        while no real model has been chosen yet, so a working deliberate
+        choice never gets silently swapped out. With force=True (the
+        provider is definitively blocked — e.g. a required key is missing),
+        it overrides even an already-selected model, since that selection is
+        guaranteed to fail every call regardless. Placeholder text (e.g.
+        "(loading models…)") never counts as a real selection either way, so
+        a chain of several fallback attempts in one trigger can't get stuck
+        on its own leftover placeholder from the previous attempt.
+
+        Returns True if it switched — the switch's own
+        _on_provider_changed -> _fetch_models call takes over from there, so
+        the caller should stop immediately."""
+        has_real_selection = not self._showing_placeholder and bool(self.current_model())
+        if not force and has_real_selection:
+            return False
+        self._tried_fallbacks.add(blocked_provider_id)
+        candidates = EMBEDDING_FALLBACK_ORDER if self._embeddings_only else CHAT_FALLBACK_ORDER
+        for candidate in candidates:
+            if candidate in self._tried_fallbacks:
+                continue
+            if self._embeddings_only and candidate not in EMBEDDING_CAPABLE_PROVIDER_IDS:
+                continue
+            if self._config_blocker(candidate):
+                continue  # not configured either — leave untried, Settings might fill it in later
+            self._select_by_data(self._provider_combo, candidate)
+            return True
+        return False
+
+    def _pick_default_model(self, provider_id: str, models: list) -> str:
+        # Shared with LLMClient's runtime chat-failure fallback (see
+        # app.core.llm.registry) so both paths land on the identical model
+        # for a given provider/model-list, not two independently-drifting
+        # heuristics.
+        if self._embeddings_only:
+            return pick_embedding_model(provider_id, models)
+        return pick_chat_model(provider_id, models)
 
     def _fetch_models(self) -> None:
         provider_id = self.current_provider_id()
-        provider = PROVIDERS.get(provider_id)
-        if provider is None:
-            return
-        if provider.requires_api_key and not self._settings.api_keys.get(provider_id):
-            self._set_placeholder("(enter API key in Settings)")
-            return
-        if provider_id == "ollama_api" and not self._settings.ollama_remote_host:
-            self._set_placeholder("(set remote host in Settings)")
+        blocker = self._config_blocker(provider_id)
+        if blocker:
+            if self._try_next_configured_provider(provider_id, force=True):
+                return
+            self._set_placeholder(blocker)
             return
 
         # Never send placeholder text we set ourselves (e.g. "(enter API key
@@ -213,6 +333,8 @@ class ProviderModelSelectorWidget(QWidget):
             # switched away from landing late and clobbering the combo.
             if self.current_provider_id() != provider_id:
                 return
+            if not models and self._try_next_configured_provider(provider_id):
+                return
             # Captured before _populate_models resets the flag: True means
             # there was no real selection yet (fresh provider switch, or an
             # API key that just went from missing to present).
@@ -220,7 +342,7 @@ class ProviderModelSelectorWidget(QWidget):
             self._populate_models([m.id for m in models])
             self._update_gated_notice(models)
             if had_no_real_selection:
-                default_id = _DEFAULT_MODELS.get(provider_id) or (models[0].id if models else "")
+                default_id = self._pick_default_model(provider_id, models)
                 if default_id:
                     # Don't rely on currentTextChanged to trigger the save:
                     # if the fetch happens to auto-select this exact model
@@ -234,12 +356,15 @@ class ProviderModelSelectorWidget(QWidget):
             if self.current_provider_id() != provider_id:
                 return
             logger.warning("Could not fetch models for %s: %s", provider_id, message)
+            if self._try_next_configured_provider(provider_id):
+                return
             self._set_placeholder(f"(unavailable: {message[:60]})")
             self._hide_gated_notice()
 
         run_in_background(work, on_finished=done, on_failed=failed)
 
     def _populate_models(self, names: list[str]) -> None:
+        self._all_model_names = list(names)
         was_placeholder = self._showing_placeholder
         self._showing_placeholder = False
         current = "" if was_placeholder else self.current_model()
@@ -249,6 +374,19 @@ class ProviderModelSelectorWidget(QWidget):
         if current:
             idx = self._model_combo.findText(current)
             self._model_combo.setCurrentIndex(idx) if idx >= 0 else self._model_combo.setCurrentText(current)
+        self._model_combo.blockSignals(False)
+
+    def _filter_cached_models(self) -> None:
+        """Ollama/OpenAI/Anthropic/Gemini have no server-side search — as the
+        user types, narrow the dropdown to the already-fetched list's
+        matches client-side instead of doing nothing until Refresh."""
+        typed = self.current_model()
+        query = typed.strip().lower()
+        matches = [n for n in self._all_model_names if query in n.lower()] if query else self._all_model_names
+        self._model_combo.blockSignals(True)
+        self._model_combo.clear()
+        self._model_combo.addItems(matches or self._all_model_names)
+        self._model_combo.setEditText(typed)
         self._model_combo.blockSignals(False)
 
     def _set_placeholder(self, text: str) -> None:
@@ -265,8 +403,11 @@ class ProviderModelSelectorWidget(QWidget):
             return
         self._gated_model_id = gated_model.id
         self._gated_notice.setText(
-            f"⚠ {gated_model.id} requires accepting a license "
-            "on HuggingFace before it can be used."
+            f"⚠ {gated_model.id} is a gated repo on HuggingFace. If you haven't accepted its license "
+            "yet, click through below first. If you already have, this notice is informational only "
+            "(gating is a repo property HuggingFace's public search always reports, regardless of your "
+            "personal access) — a chat call through it can still fail separately if no Inference "
+            "Provider actually serves this specific model."
         )
         self._gated_notice.show()
         self._gated_open_btn.show()

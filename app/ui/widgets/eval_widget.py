@@ -71,10 +71,16 @@ class EvalWidget(QWidget):
         self._refresh()
 
     def _on_pipeline_updated(self, event: PipelineEvent) -> None:
+        if event.pipeline == "release" and event.status == "completed":
+            self._gate_label.setText(f"✅ 100% PASSED — ready to deploy. {event.summary}")
+            self._gate_label.setProperty("role", "banner-ok")
+            self._gate_label.style().unpolish(self._gate_label)
+            self._gate_label.style().polish(self._gate_label)
+            return
         if event.pipeline != "graph":
             return
         if event.status == "completed":
-            self._gate_label.setText("PASSED — Graph Engineering approved this run; a clean copy is being exported.")
+            self._gate_label.setText("PASSED — Graph Engineering approved this run; Code Review runs next.")
             self._gate_label.setProperty("role", "banner-ok")
         elif event.status in ("failed", "blocked"):
             self._gate_label.setText(f"BLOCKED — {event.summary or 'Graph Engineering did not approve this run.'}")

@@ -19,7 +19,9 @@ _README_NAMES = ("README.md", "README.rst", "README.txt")
 def missing_scaffolding(project: ProjectContext) -> dict[str, str]:
     """Returns {relative_path: content} for whatever standard scaffolding
     Architecture validation flags as missing — only entries that don't
-    already exist on disk."""
+    already exist on disk. `has_tests_dir` already means "has at least one
+    real test file", not just "the folder exists" (see project_context.py),
+    so an empty leftover tests/ folder is correctly treated as missing."""
     files: dict[str, str] = {}
 
     if not project.has_tests_dir:

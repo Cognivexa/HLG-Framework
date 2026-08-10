@@ -74,6 +74,7 @@ def run_memory_gate(
         response = llm_client.chat(
             provider_id=provider_id, model=model, prompt=prompt, system=_GATE_SYSTEM_PROMPT, temperature=0.0,
             label="Memory Gate — Remember This Fix?", run_id=run_id,
+            settings_attrs=("loop_fix_provider", "loop_fix_model"),
         )
         decision = _parse_decision(response)
     except ProviderError as exc:

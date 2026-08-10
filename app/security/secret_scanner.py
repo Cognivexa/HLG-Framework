@@ -1,4 +1,6 @@
-"""Offline secret detection: API keys, generic secrets, passwords, private keys.
+"""Offline secret detection: API keys, generic secrets, passwords, private
+keys, PII (emails, hardcoded usernames, payment card numbers), and
+PHI-adjacent data (SSNs, medical/patient record identifiers).
 
 Fully local — regex signatures for well-known key formats plus a Shannon-entropy
 heuristic for opaque high-entropy strings assigned to credential-shaped names.
@@ -16,6 +18,8 @@ CATEGORY_API_KEY = "api_key"
 CATEGORY_SECRET = "secret"
 CATEGORY_PASSWORD = "password"
 CATEGORY_PRIVATE_KEY = "private_key"
+CATEGORY_PII = "pii"
+CATEGORY_PHI = "phi"
 
 _PATTERNS: list[tuple[str, str, re.Pattern]] = [
     (CATEGORY_API_KEY, "AWS Access Key ID", re.compile(r"\bAKIA[0-9A-Z]{16}\b")),
@@ -46,6 +50,34 @@ _PATTERNS: list[tuple[str, str, re.Pattern]] = [
         CATEGORY_SECRET,
         "Generic secret assignment",
         re.compile(r"(?i)(secret|token|api_key|apikey|access_key)\s*[=:]\s*['\"][^'\"\s]{8,}['\"]"),
+    ),
+    (
+        CATEGORY_PII,
+        "Hardcoded email address",
+        re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b"),
+    ),
+    (
+        CATEGORY_PII,
+        "Hardcoded username assignment",
+        re.compile(r"(?i)(username|user_name)\s*[=:]\s*['\"][^'\"\s]{2,}['\"]"),
+    ),
+    (
+        CATEGORY_PII,
+        "Hardcoded payment card number assignment",
+        re.compile(r"(?i)(card_number|credit_card|card_no|ccn|cc_number)\s*[=:]\s*['\"][\d\- ]{13,19}['\"]"),
+    ),
+    (
+        CATEGORY_PHI,
+        # XXX-XX-XXXX is distinctive enough to flag standalone, unlike the
+        # other PII/PHI rules here — it's not a format anything else in
+        # source code commonly takes.
+        "Hardcoded Social Security Number",
+        re.compile(r"\b\d{3}-\d{2}-\d{4}\b"),
+    ),
+    (
+        CATEGORY_PHI,
+        "Hardcoded medical/patient record identifier",
+        re.compile(r"(?i)(patient_id|patient_name|medical_record_number|\bmrn\b|health_record|diagnosis_code|insurance_id)\s*[=:]\s*['\"][^'\"\s]{2,}['\"]"),
     ),
 ]
 

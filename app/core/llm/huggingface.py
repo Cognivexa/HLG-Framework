@@ -9,7 +9,7 @@ from typing import Callable
 
 import requests
 
-from app.core.llm.base import LLMProvider, ProviderError, ProviderModel
+from app.core.llm.base import LLMProvider, ProviderError, ProviderModel, response_error_detail
 
 _HUB_API = "https://huggingface.co/api/models"
 _ROUTER_BASE = "https://router.huggingface.co/v1"
@@ -32,11 +32,17 @@ class HuggingFaceProvider(LLMProvider):
             params["search"] = query
         else:
             params["filter"] = "text-generation"
+        # Authenticated when a key is configured — the Hub search endpoint
+        # doesn't require it, but sending it costs nothing and is a
+        # prerequisite for HF ever being able to reflect this specific
+        # account's own access grants rather than only the repo's blanket
+        # "gated" flag.
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         try:
-            resp = requests.get(_HUB_API, params=params, timeout=15)
+            resp = requests.get(_HUB_API, params=params, headers=headers, timeout=15)
             resp.raise_for_status()
         except requests.RequestException as exc:
-            raise ProviderError(f"HuggingFace model search failed: {exc}") from exc
+            raise ProviderError(f"HuggingFace model search failed: {exc}{response_error_detail(exc)}") from exc
         data = resp.json()
         models = [
             ProviderModel(id=entry["id"], gated=bool(entry.get("gated")))
@@ -50,17 +56,18 @@ class HuggingFaceProvider(LLMProvider):
         # check for it directly so it's still selectable/usable.
         already_listed = any(m.id.lower() == query.lower() for m in models)
         if query and "/" in query and not already_listed:
-            exact = self._lookup_exact_model(query)
+            exact = self._lookup_exact_model(query, api_key)
             if exact is not None:
                 models.insert(0, exact)
 
         return models
 
     @staticmethod
-    def _lookup_exact_model(model_id: str) -> ProviderModel | None:
+    def _lookup_exact_model(model_id: str, api_key: str = "") -> ProviderModel | None:
         url = f"{_HUB_API}/{model_id}"
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
         try:
-            resp = requests.get(url, params={"expand[]": "gated"}, timeout=10)
+            resp = requests.get(url, params={"expand[]": "gated"}, headers=headers, timeout=10)
         except requests.RequestException:
             return None
         if resp.status_code != 200:
@@ -91,7 +98,7 @@ class HuggingFaceProvider(LLMProvider):
             )
             resp.raise_for_status()
         except requests.RequestException as exc:
-            raise ProviderError(f"HuggingFace chat call failed: {exc}") from exc
+            raise ProviderError(f"HuggingFace chat call failed: {exc}{response_error_detail(exc)}") from exc
         data = resp.json()
         try:
             text = data["choices"][0]["message"]["content"]

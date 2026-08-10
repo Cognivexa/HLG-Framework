@@ -10,6 +10,31 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Callable
 
+import requests
+
+
+def response_error_detail(exc: requests.RequestException) -> str:
+    """A bare `requests.HTTPError` (e.g. "400 Client Error: Bad Request")
+    discards the response body, which is usually where the actual reason
+    lives (an auth problem, a model not being served, a malformed request).
+    Returns a " — <detail>" suffix to append to an error message, or "" if
+    there's no response to inspect."""
+    resp = getattr(exc, "response", None)
+    if resp is None:
+        return ""
+    try:
+        data = resp.json()
+    except ValueError:
+        text = (resp.text or "").strip()
+        return f" — {text[:300]}" if text else ""
+    if isinstance(data, dict):
+        detail = data.get("error") or data.get("message") or data.get("detail")
+        if isinstance(detail, dict):
+            detail = detail.get("message") or detail
+        if detail:
+            return f" — {detail}"
+    return f" — {data}" if data else ""
+
 
 @dataclass
 class ProviderModel:

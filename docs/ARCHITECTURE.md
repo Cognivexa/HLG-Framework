@@ -17,7 +17,7 @@ app/
   pipelines/
     base.py        Step / StepResult / PipelineContext / PipelineRunner shared by all three panels
     steps/          ONE real implementation per capability, reused by Harness and Graph alike
-    harness/        the 18-step pipeline — independent steps run concurrently (see below)
+    harness/        the 21-step pipeline — independent steps run concurrently (see below)
     loop/           the iterative retry/fix loop + file backup/rollback
     graph/          the 16-agent DAG: agents.py (registry), orchestrator.py (router),
                      graph_executor.py (concurrent execution)
@@ -147,7 +147,7 @@ not new stores:
 declares `HARNESS_STEPS` with a `depends_on` per step (mirroring Graph's
 dependency edges) and `PipelineRunner` executes independent ones
 concurrently via the same DAG-execution model `graph_executor.py` uses —
-the Harness tab still shows all 18 steps in their original fixed order
+the Harness tab still shows all 21 steps in their original fixed order
 (`PipelineRunner.announce()` pre-populates every row as "pending" up front),
 but multiple can show "running" at once. `graph/agents.py` wraps the *same*
 step functions as `GraphNode`s. The only behavioral difference between the

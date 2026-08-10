@@ -66,8 +66,12 @@ def run_unit_tests(python_executable: str, project_root: Path, has_tests_dir: bo
 
 def run_integration_tests(python_executable: str, project_root: Path, has_integration_tests: bool) -> TestRunResult:
     if not has_integration_tests:
+        # Unlike a missing tests/ dir (a real gap Loop can act on), a
+        # separate integration suite is optional — plenty of projects are
+        # fully and correctly tested by unit tests alone. success=True here
+        # is deliberate: this is "not applicable," not "something's missing."
         return TestRunResult(
             ran=False, success=True, passed=0, failed=0, output="",
-            skipped_reason="No tests/integration/ directory found",
+            skipped_reason="No separate tests/integration/ suite — optional, add one only if this project needs integration-level coverage beyond its unit tests.",
         )
     return _run_pytest(python_executable, project_root, "tests/integration")

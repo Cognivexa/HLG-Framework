@@ -67,6 +67,9 @@ class DashboardWidget(QWidget):
         auto_run_layout.addWidget(self._auto_run_check)
         auto_run_box.setLayout(auto_run_layout)
 
+        self._release_banner = QLabel("No fully clean run yet for any monitored project.")
+        self._release_banner.setWordWrap(True)
+
         self._ollama_banner = QLabel("Ollama: checking…")
         self._ollama_banner.setProperty("role", "banner-error")
 
@@ -134,6 +137,7 @@ class DashboardWidget(QWidget):
         layout = QVBoxLayout(self)
         layout.addWidget(self._description_label)
         layout.addWidget(auto_run_box)
+        layout.addWidget(self._release_banner)
         layout.addWidget(self._ollama_banner)
         layout.addLayout(web_row)
         layout.addWidget(metrics_box)
@@ -186,6 +190,13 @@ class DashboardWidget(QWidget):
             self._activity_list.takeItem(self._activity_list.count() - 1)
 
     def _on_pipeline_updated(self, event: PipelineEvent) -> None:
+        if event.pipeline == "release" and event.status == "completed":
+            self._release_banner.setText(f"✅ 100% PASSED — {event.project_path}: {event.summary}")
+            self._release_banner.setProperty("role", "banner-ok")
+            self._release_banner.style().unpolish(self._release_banner)
+            self._release_banner.style().polish(self._release_banner)
+            return
+
         key = (event.pipeline, event.project_path)
         if event.status == "started":
             self._active_runs[key] = event.status

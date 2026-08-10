@@ -92,6 +92,10 @@ class EventBus(QObject):
     fix_proposed = Signal(object)          # FixProposal — Loop wants approval before writing a fix
     memory_gate_decided = Signal(str, bool, str)  # run_id, remembered, lesson
     prompt_activity = Signal(object)       # PromptEvent — every model call, for the AI Prompt Timeline
+    # Fired when LLMClient.chat() recovers from a runtime failure by
+    # switching to a different provider/model (see app.core.llm_client):
+    # (provider_attr, model_attr, new_provider_id, new_model, reason).
+    model_fallback_applied = Signal(str, str, str, str, str)
 
 
 bus = EventBus()

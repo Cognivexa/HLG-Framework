@@ -36,7 +36,8 @@ class SettingsWidget(QWidget):
         self._host_edit = QLineEdit(settings.ollama_host)
         self._remote_host_edit = QLineEdit(settings.ollama_remote_host)
         self._remote_host_edit.setPlaceholderText(
-            "e.g. https://ollama.com (Ollama's own cloud models) or http://my-server:11434 (self-hosted)"
+            "Leave blank to use Ollama's own cloud API (https://ollama.com) with the key below — "
+            "only set this if you're pointing at your own self-hosted remote Ollama server instead"
         )
         self._remote_host_timer = QTimer(self)
         self._remote_host_timer.setSingleShot(True)
@@ -63,7 +64,15 @@ class SettingsWidget(QWidget):
             edit.setEchoMode(QLineEdit.EchoMode.Password)
             placeholder = f"{provider.display_name} API key"
             if provider_id == "ollama_api":
-                placeholder += " (optional — only needed to chat with ollama.com cloud models)"
+                placeholder += " (optional — only for calling ollama.com directly from this app)"
+                edit.setToolTip(
+                    "Only used by the 'Ollama (Remote / Cloud API)' provider choice, to call "
+                    "https://ollama.com directly with this key as the request's auth. This is "
+                    "unrelated to running `ollama signin` in a terminal or the Ollama desktop app "
+                    "being signed in — those control your LOCAL Ollama server, which the 'Ollama "
+                    "(Local)' provider already talks to with no key needed here. If a model shows "
+                    "up in `ollama list` on this machine, pick 'Ollama (Local)' to use it, not this."
+                )
             edit.setPlaceholderText(placeholder)
             edit.textChanged.connect(lambda _text, pid=provider_id: self._debounce_save_key(pid))
             api_keys_form.addRow(provider.display_name, edit)
@@ -77,13 +86,23 @@ class SettingsWidget(QWidget):
 
         self._retry_spin = QSpinBox()
         self._retry_spin.setRange(0, 10)
+        self._retry_spin.setToolTip(
+            "Loop keeps fixing and re-checking for as long as each attempt improves on the "
+            "last one — this is NOT a total attempt cap. It only gives up once this many "
+            "consecutive iterations in a row fail to improve anything (a genuine stall), not "
+            "after a fixed number of tries overall."
+        )
         self._retry_spin.setValue(settings.retry_limit)
 
         self._harness_retry_spin = QSpinBox()
         self._harness_retry_spin.setRange(1, 10)
         self._harness_retry_spin.setToolTip(
-            "With Auto Run on: how many full Harness -> Loop rounds to attempt for one "
-            "change before giving up, instead of stopping after the first round."
+            "With Auto Run on: the full Harness -> Loop -> Graph -> Code Review chain keeps "
+            "retrying automatically for as long as each round is making progress, including "
+            "secret/PII findings (Loop moves them to an environment variable, never masks them). "
+            "It only gives up once this many consecutive rounds in a row show no improvement (a "
+            "genuine stall) — not after a fixed total number of rounds. With Auto Run OFF, any "
+            "failure — including secrets/PII — blocks immediately for manual review instead."
         )
         self._harness_retry_spin.setValue(settings.harness_auto_retry_limit)
 
@@ -134,8 +153,8 @@ class SettingsWidget(QWidget):
 
         behavior_form = QFormLayout()
         behavior_form.addRow("Theme", self._theme_combo)
-        behavior_form.addRow("Loop retry limit", self._retry_spin)
-        behavior_form.addRow("Harness auto-retry rounds (Auto Run)", self._harness_retry_spin)
+        behavior_form.addRow("Loop stall limit (consecutive non-improving iterations)", self._retry_spin)
+        behavior_form.addRow("Chain stall limit (consecutive non-improving rounds, Auto Run)", self._harness_retry_spin)
         behavior_form.addRow("File debounce (seconds)", self._debounce_spin)
         behavior_form.addRow("Pipeline batch window (ms)", self._batch_window_spin)
         behavior_form.addRow("Model temperature", self._temperature_spin)

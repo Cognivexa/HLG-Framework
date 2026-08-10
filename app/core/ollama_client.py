@@ -8,6 +8,7 @@ from typing import Any, Callable
 import requests
 
 from app.config.constants import OLLAMA_HEALTHCHECK_TIMEOUT, OLLAMA_REQUEST_TIMEOUT
+from app.core.llm.base import response_error_detail
 from app.core.logging_setup import get_logger
 
 logger = get_logger(__name__)
@@ -23,6 +24,27 @@ class OllamaModel:
 
 class OllamaError(RuntimeError):
     """Raised when a call to the local Ollama server fails or is misconfigured."""
+
+
+def _chat_error_hint(model: str, exc: requests.RequestException) -> str:
+    """The two most common causes of a broken local-Ollama chat call are
+    invisible from requests' own error text — add a concrete, actionable
+    hint rather than leaving the user to guess at a bare "400"/"401"."""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    if status == 401 and model.endswith(":cloud"):
+        return (
+            f" — {model!r} is an Ollama cloud-proxy model; it needs the local Ollama "
+            "app itself to be signed in (run `ollama signin` in a terminal), separately "
+            "from this app's Settings. Or switch this pipeline to the 'Ollama (Remote / "
+            "Cloud API)' provider instead, which uses this app's own API key."
+        )
+    if status == 400 and "embed" in model.lower():
+        return (
+            f" — {model!r} looks like an embeddings-only model, not a chat model; it "
+            "can't answer prompts. Pick a different model for this pipeline (embedding "
+            "models are only valid for the RAG tab's embedding selector)."
+        )
+    return ""
 
 
 class OllamaClient:
@@ -86,7 +108,9 @@ class OllamaClient:
             resp = requests.post(f"{self.host}/api/chat", headers=self._headers(), json=payload, timeout=timeout)
             resp.raise_for_status()
         except requests.RequestException as exc:
-            raise OllamaError(f"Ollama chat call failed: {exc}") from exc
+            raise OllamaError(
+                f"Ollama chat call failed: {exc}{_chat_error_hint(model, exc)}{response_error_detail(exc)}"
+            ) from exc
         data = resp.json()
         return data.get("message", {}).get("content", "")
 
@@ -137,7 +161,9 @@ class OllamaClient:
                     if chunk.get("done"):
                         break
         except requests.RequestException as exc:
-            raise OllamaError(f"Ollama chat call failed: {exc}") from exc
+            raise OllamaError(
+                f"Ollama chat call failed: {exc}{_chat_error_hint(model, exc)}{response_error_detail(exc)}"
+            ) from exc
         return "".join(full_text_parts)
 
     def embed(self, model: str, text: str) -> list[float]:
@@ -148,7 +174,7 @@ class OllamaClient:
             resp = requests.post(f"{self.host}/api/embeddings", headers=self._headers(), json=payload, timeout=60)
             resp.raise_for_status()
         except requests.RequestException as exc:
-            raise OllamaError(f"Ollama embeddings call failed: {exc}") from exc
+            raise OllamaError(f"Ollama embeddings call failed: {exc}{response_error_detail(exc)}") from exc
         data = resp.json()
         embedding = data.get("embedding")
         if not embedding:

@@ -32,7 +32,7 @@ from app.pipelines.loop.env_remediation import move_secret_to_env
 logger = get_logger(__name__)
 
 _SECURITY_STEP_IDS = {
-    "scan_api_keys", "scan_secrets", "detect_passwords", "detect_private_keys",
+    "scan_api_keys", "scan_secrets", "detect_passwords", "detect_private_keys", "detect_pii", "detect_phi",
     "security_scan", "secret_detection",
 }
 _TEST_STEP_IDS = {"unit_tests", "integration_tests"}

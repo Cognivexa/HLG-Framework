@@ -1,12 +1,25 @@
 """Loop Engineering: an iterative generator/evaluator retry loop built on the
 Harness pipeline's own step implementations (build_steps, test_steps,
-quality_steps) — the same real checks, just re-run after each candidate fix.
+quality_steps, secrets_steps) — the same real checks, just re-run after each
+candidate fix.
 
 Safety model: every file this loop is about to overwrite is backed up first
 (see app.pipelines.loop.backup). After each attempted fix, the same checks
 that failed are re-run; if the result is not strictly better than before, the
 file(s) touched this iteration are rolled back from backup. The loop stops
-when all checks pass or the configured retry limit is reached.
+when all checks pass, or once it *stalls* — `retry_limit` consecutive
+iterations in a row with no improvement over the one before (not a fixed
+total number of iterations: as long as each attempt is fixing at least one
+more failing check than the last, it keeps going).
+
+Secret/PII/PHI findings are included in this loop's remit — the fix prompt is
+specifically instructed to move a hardcoded value to an environment variable
+(never to mask/rename it just to dodge the scanner), and the same
+compare-and-rollback safety net applies: a "fix" that doesn't actually reduce
+the failure count is rolled back like any other. This loop only ever sees a
+secret finding at all when Auto Run is on (see pipeline_controller.py) — with
+Auto Run off, the same finding hard-blocks before Loop is triggered, for a
+human to review or explicitly enable Auto Run for.
 """
 from __future__ import annotations
 
@@ -19,12 +32,13 @@ from app.core.llm.base import ProviderError
 from app.core.llm_client import LLMClient
 from app.core.logging_setup import get_logger
 from app.core.project_context import ProjectContext, build_project_context
+from app.core.skills import with_skills
 from app.pipelines.base import PipelineContext, StepResult, new_run_id
 from app.pipelines.loop.architecture_fix import write_missing_scaffolding
 from app.pipelines.loop.backup import backup_file, restore_file
 from app.pipelines.loop.fix_approval import FixProposal, request_approval
 from app.pipelines.loop.memory_gate import run_memory_gate
-from app.pipelines.steps import ai_steps, build_steps, quality_steps, test_steps
+from app.pipelines.steps import ai_steps, build_steps, doc_steps, quality_steps, secrets_steps, test_steps
 from app.reports.report_generator import generate_and_save_reports
 
 logger = get_logger(__name__)
@@ -34,16 +48,30 @@ _CHECK_STEPS = (
     ("unit_tests", test_steps.unit_test_execution),
     ("security_scan", quality_steps.security_vulnerability_scan),
     ("static_analysis", quality_steps.static_code_analysis),
+    ("code_quality", quality_steps.code_quality_inspection),
     ("architecture_validation", ai_steps.architecture_validation),
+    ("documentation_check", doc_steps.documentation_check),
+    # Secret/PII/PHI findings — only reached here at all when Auto Run is on
+    # (see pipeline_controller.py); with Auto Run off these still hard-block
+    # for manual review before Loop ever runs.
+    ("secret_detection", secrets_steps.combined_secret_detection),
 )
 
 _FIX_BLOCK_RE = re.compile(r"```FILE:\s*(?P<path>[^\n]+?)\s*\n(?P<content>.*?)```", re.DOTALL)
 
 _FIX_SYSTEM_PROMPT = (
     "You are an autonomous code-fixing agent. You will be given the current content of one or "
-    "more Python files and a description of build/test/lint failures affecting them. Return ONLY "
-    "corrected full file contents, one per file, using EXACTLY this format for each file you "
-    "change (and omit any file you are not changing):\n\n"
+    "more Python files and a description of build/test/lint/documentation/secret-detection "
+    "failures affecting them. If a failure describes low docstring coverage, add clear, accurate "
+    "docstrings to the undocumented module(s)/class(es)/function(s) rather than skipping it. If a "
+    "failure describes a hardcoded secret/API key/password/PII/PHI finding, fix it by replacing "
+    "the literal value with a read from an environment variable (e.g. `os.environ[\"NAME\"]` or "
+    "`os.getenv(\"NAME\")`, adding `import os` if it's missing) using a clear, descriptive "
+    "variable name — never rename, mask, obfuscate, or delete the literal in a way that only "
+    "dodges the scanner without actually removing the hardcoded value, and never invent a "
+    "different hardcoded value to replace it with. Return ONLY corrected full file contents, one "
+    "per file, using EXACTLY this format for each file you change (and omit any file you are not "
+    "changing):\n\n"
     "```FILE: <the exact file path given to you>\n"
     "<the complete corrected file content>\n"
     "```\n\n"
@@ -157,10 +185,10 @@ def run_loop_pipeline(
 ) -> dict:
     run_id = new_run_id()
     project = project or build_project_context(project_path)
-    retry_limit = max(0, settings.retry_limit)
+    stall_limit = max(0, settings.retry_limit)
 
     bus.pipeline_updated.emit(PipelineEvent(pipeline="loop", run_id=run_id, project_path=project_path, status="started"))
-    logger.info("Loop run %s started for %s (%d file(s), retry_limit=%d)", run_id, project_path, len(changed_files), retry_limit)
+    logger.info("Loop run %s started for %s (%d file(s), stall_limit=%d)", run_id, project_path, len(changed_files), stall_limit)
 
     _emit_step(run_id, "detect_changed_code", "Detect changed code", "success", f"{len(changed_files)} file(s) in scope.")
 
@@ -215,9 +243,10 @@ def run_loop_pipeline(
     current_results = baseline
     current_failures = baseline_failures
     iteration = 0
+    stall = 0
     previous_note = ""
 
-    while current_failures > 0 and iteration < retry_limit:
+    while current_failures > 0 and stall < stall_limit:
         iteration += 1
         i = iteration
 
@@ -243,9 +272,10 @@ def run_loop_pipeline(
         try:
             response = llm_client.chat(
                 provider_id=settings.models.loop_fix_provider, model=fix_model, prompt=prompt,
-                system=_FIX_SYSTEM_PROMPT, temperature=settings.temperature,
+                system=with_skills(_FIX_SYSTEM_PROMPT, project.root), temperature=settings.temperature,
                 on_token=_make_stream_emitter(run_id, send_step_id, send_step_name),
                 label=f"Loop Fix Generation (iteration {i})", run_id=run_id,
+                settings_attrs=("loop_fix_provider", "loop_fix_model"),
             )
             _emit_step(run_id, send_step_id, send_step_name, "success", "Received a candidate fix.")
         except ProviderError as exc:
@@ -328,6 +358,8 @@ def run_loop_pipeline(
         _emit_step(run_id, f"retest_{i}", f"[Iteration {i}] Run unit tests again", new_results["unit_tests"].status, new_results["unit_tests"].detail)
         _emit_step(run_id, f"security_rescan_{i}", f"[Iteration {i}] Run security scans again", new_results["security_scan"].status, new_results["security_scan"].detail)
         _emit_step(run_id, f"static_rescan_{i}", f"[Iteration {i}] Run static analysis again", new_results["static_analysis"].status, new_results["static_analysis"].detail)
+        _emit_step(run_id, f"quality_rescan_{i}", f"[Iteration {i}] Run code quality inspection again", new_results["code_quality"].status, new_results["code_quality"].detail)
+        _emit_step(run_id, f"secret_rescan_{i}", f"[Iteration {i}] Scan for secrets/PII again", new_results["secret_detection"].status, new_results["secret_detection"].detail)
 
         new_failures = _failure_count(new_results)
         if new_failures < current_failures:
@@ -338,12 +370,15 @@ def run_loop_pipeline(
             current_results = new_results
             current_failures = new_failures
             previous_note = ""
+            stall = 0
         else:
             for target in backed_up:
                 restore_file(project.root, run_id, Path(target))
+            stall += 1
             _emit_step(
                 run_id, f"compare_results_{i}", f"[Iteration {i}] Compare previous and new results", "failed",
-                f"Not improved ({current_failures} -> {new_failures}). Rolled back this iteration's changes.",
+                f"Not improved ({current_failures} -> {new_failures}). Rolled back this iteration's changes. "
+                f"({stall}/{stall_limit} attempt(s) in a row with no improvement.)",
             )
             previous_note = "Your previous fix did not improve results and was rolled back. Try a different approach."
 
@@ -370,9 +405,10 @@ def run_loop_pipeline(
     else:
         verdict = StepResult(
             step_id="loop_verdict", step_name="Loop Engineering verdict", status="failed",
-            detail=f"{current_failures} check(s) still failing after {iteration} iteration(s) (retry limit reached).",
+            detail=f"{current_failures} check(s) still failing after {iteration} iteration(s) — stalled "
+            f"({stall} in a row with no improvement).",
         )
-        status, summary = "failed", f"{current_failures} check(s) still failing after retry limit."
+        status, summary = "failed", f"{current_failures} check(s) still failing — stalled after {stall} non-improving attempt(s) in a row."
     _emit_step(run_id, verdict.step_id, verdict.step_name, verdict.status, verdict.detail)
 
     bus.pipeline_updated.emit(PipelineEvent(pipeline="loop", run_id=run_id, project_path=project_path, status=status, summary=summary))

@@ -1,4 +1,4 @@
-"""The declarative 18-step Harness Engineering pipeline.
+"""The declarative 21-step Harness Engineering pipeline.
 
 Each step is a thin wrapper (see app/pipelines/steps/) around a real,
 independently testable implementation in app/security or app/analysis. The
@@ -7,12 +7,12 @@ and "Graph" views never diverge on what a given check actually does.
 
 Steps declare `depends_on` and PipelineRunner executes independent ones
 concurrently — the only genuine data dependencies are the secret-scan cache
-(the 3 category checks after scan_api_keys reuse its cached scan rather than
+(the 5 category checks after scan_api_keys reuse its cached scan rather than
 racing to populate it) and the build -> unit tests -> integration tests
 chain. Everything else (security/static/quality/dependency analysis, the
 Ollama review, RAG retrieval, architecture checks) is independent and runs
 in parallel, which is what makes this materially faster than a strictly
-sequential 18-step run while keeping the exact same fixed display order
+sequential 21-step run while keeping the exact same fixed display order
 (see PipelineRunner.announce).
 """
 from __future__ import annotations
@@ -22,7 +22,7 @@ from app.core.llm_client import LLMClient
 from app.core.logging_setup import get_logger
 from app.core.project_context import ProjectContext, build_project_context
 from app.pipelines.base import PipelineContext, PipelineRunner, Step, new_run_id
-from app.pipelines.steps import ai_steps, build_steps, core_steps, dependency_steps, quality_steps, secrets_steps, test_steps
+from app.pipelines.steps import ai_steps, build_steps, core_steps, dependency_steps, doc_steps, quality_steps, secrets_steps, test_steps
 from app.reports.report_generator import generate_and_save_reports
 
 logger = get_logger(__name__)
@@ -35,10 +35,13 @@ HARNESS_STEPS: list[Step] = [
     Step("scan_secrets", "Scan for secrets", secrets_steps.scan_secrets, depends_on=("scan_api_keys",)),
     Step("detect_passwords", "Detect passwords", secrets_steps.detect_passwords, depends_on=("scan_api_keys",)),
     Step("detect_private_keys", "Detect private keys", secrets_steps.detect_private_keys, depends_on=("scan_api_keys",)),
+    Step("detect_pii", "Detect PII", secrets_steps.detect_pii, depends_on=("scan_api_keys",)),
+    Step("detect_phi", "Detect PHI", secrets_steps.detect_phi, depends_on=("scan_api_keys",)),
     Step("security_scan", "Security vulnerability scan", quality_steps.security_vulnerability_scan),
     Step("dependency_analysis", "Dependency analysis", dependency_steps.dependency_analysis),
     Step("static_analysis", "Static code analysis", quality_steps.static_code_analysis),
     Step("code_quality", "Code quality inspection", quality_steps.code_quality_inspection),
+    Step("documentation_check", "Documentation coverage", doc_steps.documentation_check),
     Step("build_verification", "Build verification", build_steps.build_verification),
     Step("unit_tests", "Unit test execution", test_steps.unit_test_execution, depends_on=("build_verification",)),
     Step("integration_tests", "Integration test execution", test_steps.integration_test_execution, depends_on=("unit_tests",)),

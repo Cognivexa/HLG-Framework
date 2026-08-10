@@ -14,7 +14,7 @@ import psutil
 from app.reports.history import list_runs
 
 _SECURITY_STEP_IDS = {
-    "scan_api_keys", "scan_secrets", "detect_passwords", "detect_private_keys",
+    "scan_api_keys", "scan_secrets", "detect_passwords", "detect_private_keys", "detect_pii", "detect_phi",
     "security_scan", "secret_detection",
 }
 _QUALITY_STEP_IDS = {"static_analysis", "code_quality"}
@@ -29,7 +29,7 @@ _AI_STEP_IDS = ("ollama_review", "loop_verdict", "final_verification", "code_imp
 DETERMINISTIC_STEP_IDS = {
     "build_verification", "unit_tests", "integration_tests", "security_scan", "static_analysis",
     "code_quality", "dependency_analysis", "secret_detection", "scan_api_keys", "scan_secrets",
-    "detect_passwords", "detect_private_keys",
+    "detect_passwords", "detect_private_keys", "detect_pii", "detect_phi", "documentation_check",
 }
 LLM_JUDGE_STEP_IDS = {"ollama_review", "architecture_validation", "final_verification", "code_improvement", "loop_verdict"}
 

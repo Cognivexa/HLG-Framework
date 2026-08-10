@@ -49,6 +49,7 @@
   #eventLog .lvl-harness { color: #7fb3ff; }
   #eventLog .lvl-loop { color: #ffd479; }
   #eventLog .lvl-graph { color: #9be89a; }
+  #eventLog .lvl-code_review { color: #d9a4ff; }
   .memrow { padding: 8px 12px; border-bottom: 1px solid #23252c; font-size: 12px; }
   .memrow b { color: var(--ok); }
   .memrow.no b { color: var(--dim); }
@@ -80,6 +81,14 @@
   .prompt-card .text-block.expanded { max-height: none; }
   .prompt-card .text-label { color: var(--dim); font-size: 10.5px; text-transform: uppercase; letter-spacing: .03em; margin: 6px 0 3px; }
   .prompt-card .dot-sm.running { display: inline-block; }
+
+  .gnode { cursor: pointer; }
+  .gnode:hover { outline: 2px solid #fff; outline-offset: 1px; }
+  .node-detail { margin: 12px 16px 16px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel-2); }
+  .node-detail > .head { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+  .node-detail .closebtn { background: none; border: none; color: var(--dim); font-size: 15px; cursor: pointer; float: right; line-height: 1; }
+  .node-detail .closebtn:hover { color: var(--text); }
+  .node-detail-body { padding: 10px 12px; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; max-height: 260px; overflow-y: auto; }
 </style>
 </head>
 <body>
@@ -112,10 +121,18 @@
     <div class="head"><b>Graph Engineering</b><span class="badge idle" id="badge-graph">idle</span></div>
     <div class="steps" id="steps-graph"><div class="empty">Runs automatically once Harness (and Loop, if it ran) pass.</div></div>
   </section>
+  <section class="panel" id="panel-code_review">
+    <div class="head"><b>Code Review</b><span class="badge idle" id="badge-code_review">idle</span></div>
+    <div class="steps" id="steps-code_review"><div class="empty">Runs automatically once Graph Engineering passes — a multi-model panel compares current code against the last known-good baseline.</div></div>
+  </section>
 
   <section class="panel full">
     <div class="head"><b>Graph Engineering — live agent DAG</b><span class="sub" id="graph-sub">no run yet</span></div>
     <div id="graphCanvas"><div class="empty">Nodes appear here once a Graph Engineering run starts, positioned and colored the same as the desktop app's Graph tab.</div></div>
+    <div id="nodeDetail" class="node-detail" style="display:none;">
+      <div class="head"><b id="nodeDetailTitle">—</b><button class="closebtn" onclick="closeNodeDetail()">✕</button></div>
+      <div id="nodeDetailBody" class="node-detail-body"></div>
+    </div>
   </section>
 
   <section class="panel">
@@ -133,7 +150,7 @@
 
   <section class="panel">
     <div class="head"><b>Release gate</b></div>
-    <div id="releaseGate" class="memrow no"><b>Not yet reached.</b><div style="color:var(--dim);margin-top:4px;">Waiting for a Graph Engineering pass on the current run.</div></div>
+    <div id="releaseGate" class="memrow no"><b>Not yet reached.</b><div style="color:var(--dim);margin-top:4px;">Waiting for Code Review — the final multi-model check — to pass on the current run.</div></div>
   </section>
 
   <section class="panel full">
@@ -144,12 +161,12 @@
 
 <script>
 const STATUS_LABEL = { pending: "pending", running: "running", success: "success", failed: "failed", skipped: "skipped" };
-const DETERMINISTIC_IDS = new Set(["build_verification","unit_tests","integration_tests","security_scan","static_analysis","code_quality","dependency_analysis","secret_detection","scan_api_keys","scan_secrets","detect_passwords","detect_private_keys"]);
+const DETERMINISTIC_IDS = new Set(["build_verification","unit_tests","integration_tests","security_scan","static_analysis","code_quality","dependency_analysis","secret_detection","scan_api_keys","scan_secrets","detect_passwords","detect_private_keys","detect_pii","detect_phi","documentation_check"]);
 const JUDGE_IDS = new Set(["ollama_review","architecture_validation","final_verification","code_improvement","loop_verdict"]);
 const NODE_COLORS = { pending: "#3a3d42", running: "#2f81f7", success: "#3fb950", failed: "#f85149", skipped: "#8b8f98" };
 
 const state = {
-  runs: { harness: null, loop: null, graph: null },     // active run_id per pipeline
+  runs: { harness: null, loop: null, graph: null, code_review: null },     // active run_id per pipeline
   steps: {},                                             // run_id -> Map(step_id -> event)
   order: {},                                              // run_id -> [step_id in first-seen order]
   graphNodes: {},                                         // node_id -> {label, status, depends_on}
@@ -170,7 +187,7 @@ function setBadge(pipeline, status) {
 function logLine(pipelineOrKind, text) {
   const box = el("eventLog");
   const div = document.createElement("div");
-  const cls = ["harness", "loop", "graph"].includes(pipelineOrKind) ? "lvl-" + pipelineOrKind : "";
+  const cls = ["harness", "loop", "graph", "code_review"].includes(pipelineOrKind) ? "lvl-" + pipelineOrKind : "";
   if (cls) div.className = cls;
   const ts = new Date().toLocaleTimeString();
   div.textContent = `[${ts}] ${text}`;
@@ -241,12 +258,12 @@ function onPipeline(ev) {
     el("steps-" + ev.pipeline).innerHTML = '<div class="empty">Running…</div>';
   }
   logLine(ev.pipeline, `${ev.pipeline} — ${ev.status}${ev.summary ? ": " + ev.summary : ""}`);
-  if (ev.pipeline === "graph" && ev.status === "completed") {
+  if (ev.pipeline === "code_review" && ev.status === "completed") {
     el("releaseGate").className = "memrow";
-    el("releaseGate").innerHTML = `<b>PASSED</b><div style="color:var(--dim);margin-top:4px;">Graph Engineering approved this run — a clean copy is being exported to Downloads.</div>`;
-  } else if (ev.pipeline === "graph" && (ev.status === "failed" || ev.status === "blocked")) {
+    el("releaseGate").innerHTML = `<b>READY TO DEPLOY</b><div style="color:var(--dim);margin-top:4px;">${escapeHtml(ev.summary || "Code Review approved this run — a clean copy is being exported to Downloads.")}</div>`;
+  } else if (ev.pipeline === "code_review" && (ev.status === "failed" || ev.status === "blocked")) {
     el("releaseGate").className = "memrow no";
-    el("releaseGate").innerHTML = `<b>BLOCKED</b><div style="color:var(--dim);margin-top:4px;">${escapeHtml(ev.summary || "Graph Engineering did not approve this run.")}</div>`;
+    el("releaseGate").innerHTML = `<b>BLOCKED</b><div style="color:var(--dim);margin-top:4px;">${escapeHtml(ev.summary || "Code Review did not approve this run.")}</div>`;
   }
 }
 
@@ -303,6 +320,8 @@ function layoutGraph() {
     div.style.left = p.x + "px"; div.style.top = p.y + "px";
     div.style.background = NODE_COLORS[node.status] || NODE_COLORS.pending;
     div.textContent = node.label;
+    div.title = "Click for detail";
+    div.onclick = () => showNodeDetail(id);
     canvas.appendChild(div);
   });
 
@@ -310,6 +329,21 @@ function layoutGraph() {
   Object.values(positions).forEach(p => { maxX = Math.max(maxX, p.x + NODE_W); maxY = Math.max(maxY, p.y + NODE_H); });
   canvas.style.minWidth = (maxX + 20) + "px";
   canvas.style.minHeight = (maxY + 20) + "px";
+}
+
+function showNodeDetail(nodeId) {
+  const node = state.graphNodes[nodeId];
+  const stepMap = state.steps[state.graphRunId];
+  const stepEv = stepMap ? stepMap.get(nodeId) : null;
+  el("nodeDetailTitle").textContent = (node ? node.label : nodeId) + (stepEv ? ` — ${stepEv.status.toUpperCase()}` : "");
+  el("nodeDetailBody").textContent = stepEv
+    ? (stepEv.detail || "(no detail)")
+    : "This agent hasn't reported a result yet — it may still be pending or running.";
+  el("nodeDetail").style.display = "block";
+}
+
+function closeNodeDetail() {
+  el("nodeDetail").style.display = "none";
 }
 
 function onGraphNode(ev) {

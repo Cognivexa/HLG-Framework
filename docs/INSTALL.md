@@ -58,10 +58,11 @@ python -m app
    failed step to open the Issue Sidebar and jump to it in VS Code.
 5. If Harness passes, **Graph Engineering** runs automatically next. If it
    fails, **Loop Engineering** only runs automatically if you enable
-   "Automatically run Loop Engineering after a failed Harness run" in
-   Settings (off by default, since it writes to your files) — otherwise the
-   Loop/Graph tabs show a clear "blocked" status. Both also have their own
-   manual "Run Now" button at any time.
+   **Auto Run** in Settings or on the Dashboard (off by default, since it
+   writes to your files) — otherwise the Loop/Graph tabs show a clear
+   "blocked" status naming exactly what failed. Both also have their own
+   manual "Run Now" button at any time. New to these three concepts? Open
+   the **How It Works** tab first.
 6. Once the full chain passes for a project, check the **Copy Clean
    Project** tab — a clean, tested copy is auto-exported to Downloads.
 

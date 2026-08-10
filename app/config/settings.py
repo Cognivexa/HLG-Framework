@@ -44,6 +44,7 @@ LOG_DIR = CONFIG_DIR / "logs"
 RAG_DIR = CONFIG_DIR / "rag_store"
 REPORTS_DIR = CONFIG_DIR / "reports"
 HISTORY_DIR = CONFIG_DIR / "history"
+CODE_REVIEW_BASELINE_DIR = CONFIG_DIR / "code_review_baselines"
 BACKUP_DIRNAME = ".harness_backup"
 
 
@@ -57,6 +58,11 @@ class PipelineModelChoice:
     graph_review_provider: str = "ollama_local"
     rag_embedding_model: str = ""
     rag_embedding_provider: str = "ollama_local"
+    # Code Review is deliberately multi-model, not one provider/model pair —
+    # each entry is {"provider": provider_id, "model": model_id}. Several
+    # independent reviewers looking at the same diff catch more than one
+    # model reviewing itself would.
+    code_review_panel: list[dict] = field(default_factory=list)
 
 
 @dataclass

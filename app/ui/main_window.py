@@ -7,10 +7,12 @@ from app.config.constants import APP_DISPLAY_NAME
 from app.core.autostart import set_autostart
 from app.ui.theme import stylesheet_for
 from app.ui.widgets.clean_copy_widget import CleanCopyWidget
+from app.ui.widgets.code_review_widget import CodeReviewWidget
 from app.ui.widgets.dashboard_widget import DashboardWidget
 from app.ui.widgets.eval_widget import EvalWidget
 from app.ui.widgets.graph_widget import GraphWidget
 from app.ui.widgets.harness_widget import HarnessWidget
+from app.ui.widgets.how_it_works_widget import HowItWorksWidget
 from app.ui.widgets.log_viewer import LogViewerWidget
 from app.ui.widgets.loop_widget import LoopWidget
 from app.ui.widgets.memory_widget import MemoryWidget
@@ -32,9 +34,11 @@ class MainWindow(QMainWindow):
 
         self._tabs = QTabWidget()
         self.dashboard = DashboardWidget(settings, pipeline_controller)
+        self.how_it_works_widget = HowItWorksWidget()
         self.harness_widget = HarnessWidget(settings, llm_client)
         self.loop_widget = LoopWidget(settings, llm_client)
         self.graph_widget = GraphWidget(settings, llm_client)
+        self.code_review_widget = CodeReviewWidget(settings, llm_client)
         self.rag_widget = RagWidget(settings, llm_client)
         self.memory_widget = MemoryWidget()
         self.eval_widget = EvalWidget()
@@ -44,9 +48,11 @@ class MainWindow(QMainWindow):
         self.log_viewer = LogViewerWidget()
 
         self._tabs.addTab(self.dashboard, "Dashboard")
+        self._tabs.addTab(self.how_it_works_widget, "How It Works")
         self._tabs.addTab(self.harness_widget, "Harness Engineering")
         self._tabs.addTab(self.loop_widget, "Loop Engineering")
         self._tabs.addTab(self.graph_widget, "Graph Engineering")
+        self._tabs.addTab(self.code_review_widget, "Code Review")
         self._tabs.addTab(self.rag_widget, "RAG")
         self._tabs.addTab(self.memory_widget, "Memory")
         self._tabs.addTab(self.eval_widget, "Eval")
@@ -69,6 +75,7 @@ class MainWindow(QMainWindow):
         self.harness_widget.set_projects(projects)
         self.loop_widget.set_projects(projects)
         self.graph_widget.set_projects(projects)
+        self.code_review_widget.set_projects(projects)
 
     def _on_settings_changed(self) -> None:
         self._ollama_client.host = self._settings.ollama_host

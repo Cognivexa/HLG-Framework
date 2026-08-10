@@ -22,9 +22,23 @@ def test_detects_tests_directory(tmp_path):
 
 
 def test_detects_integration_tests_directory(tmp_path):
-    (tmp_path / "tests" / "integration").mkdir(parents=True)
+    integration_dir = tmp_path / "tests" / "integration"
+    integration_dir.mkdir(parents=True)
+    (integration_dir / "test_flow.py").write_text("def test_flow(): assert True\n")
     ctx = build_project_context(tmp_path)
     assert ctx.has_integration_tests
+
+
+def test_empty_tests_directory_does_not_count_as_having_tests(tmp_path):
+    (tmp_path / "tests").mkdir()
+    ctx = build_project_context(tmp_path)
+    assert not ctx.has_tests_dir
+
+
+def test_empty_integration_directory_does_not_count_as_having_tests(tmp_path):
+    (tmp_path / "tests" / "integration").mkdir(parents=True)
+    ctx = build_project_context(tmp_path)
+    assert not ctx.has_integration_tests
 
 
 def test_falls_back_to_system_python_without_venv(tmp_path):

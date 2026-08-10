@@ -34,7 +34,7 @@ issues rather than trusting the description alone.
 
 Open `calculator.py` in any editor, make a trivial edit (add a blank line
 is enough), and save. Switch to the **Harness Engineering** tab: within a
-second or two you'll see all 18 steps light up, with several running
+second or two you'll see all 21 steps light up, with several running
 concurrently. Expect:
 
 - `Scan for API keys` / `Detect passwords` — ❌ (the hardcoded password)

@@ -25,6 +25,11 @@ DEFAULT_BATCH_WINDOW_MS = 800
 # falling back to IPv4) on every single Ollama call — 127.0.0.1 skips that
 # entirely and responds instantly.
 OLLAMA_DEFAULT_HOST = "http://127.0.0.1:11434"
+# Default target for the "Ollama (Remote / Cloud API)" provider when the user
+# hasn't typed a custom host — this covers the common case (Ollama's own
+# hosted cloud models at a fixed, well-known URL) without making every user
+# type it in by hand; a self-hosted remote server still overrides it.
+OLLAMA_CLOUD_HOST = "https://ollama.com"
 OLLAMA_REQUEST_TIMEOUT = 15
 OLLAMA_HEALTHCHECK_TIMEOUT = 2
 

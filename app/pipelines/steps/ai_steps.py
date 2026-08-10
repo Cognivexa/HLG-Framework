@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.core.llm.base import ProviderError
+from app.core.skills import with_skills
 from app.pipelines.base import PipelineContext, StepResult
 
 _REVIEW_SYSTEM_PROMPT = (
@@ -54,10 +55,11 @@ def ollama_code_review(ctx: PipelineContext) -> StepResult:
             provider_id=ctx.settings.models.harness_review_provider,
             model=model,
             prompt=source,
-            system=_REVIEW_SYSTEM_PROMPT,
+            system=with_skills(_REVIEW_SYSTEM_PROMPT, ctx.project.root),
             temperature=ctx.settings.temperature,
             label="AI Code Review",
             run_id=ctx.run_id,
+            settings_attrs=("harness_review_provider", "harness_review_model"),
         )
     except ProviderError as exc:
         return StepResult(step_id="ollama_review", step_name="Ollama AI code review", status="failed", detail=str(exc))
@@ -145,13 +147,15 @@ def suggest_code_improvements(ctx: PipelineContext) -> StepResult:
             provider_id=provider_id,
             model=model,
             prompt=prompt,
-            system=(
+            system=with_skills(
                 "Suggest specific, actionable code improvements to resolve the listed failing checks. "
-                "Be concise and concrete."
+                "Be concise and concrete.",
+                ctx.project.root,
             ),
             temperature=ctx.settings.temperature,
             label="Code Improvement Agent",
             run_id=ctx.run_id,
+            settings_attrs=("graph_review_provider", "graph_review_model"),
         )
     except ProviderError as exc:
         return StepResult(step_id="code_improvement", step_name="Code improvement suggestions", status="failed", detail=str(exc))

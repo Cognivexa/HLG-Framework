@@ -4,7 +4,7 @@ from __future__ import annotations
 import sys
 import webbrowser
 
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import QApplication
 
 from app.config.constants import APP_DISPLAY_NAME
@@ -27,6 +27,12 @@ logger = get_logger(__name__)
 def main() -> int:
     configure_logging()
     logger.info("Starting %s", APP_DISPLAY_NAME)
+
+    # Must be set before QApplication is constructed. Without this, a
+    # fractional Windows display scale (125%/150% — the common case on
+    # laptops) makes a Qt6 app render oversized/blurry; PassThrough uses the
+    # exact scale factor instead of rounding to the nearest integer.
+    QApplication.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
 
     app = QApplication(sys.argv)
     app.setQuitOnLastWindowClosed(False)

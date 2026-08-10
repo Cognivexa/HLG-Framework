@@ -1,8 +1,11 @@
 """Live DAG view: nodes positioned by topological depth, colored by live
-status as GraphNodeEvents arrive from the bus."""
+status as GraphNodeEvents arrive from the bus. Clicking a node emits its
+node_id so the tab can show that step's detail — the DAG and the step list
+next to it are two views onto the exact same steps (see harness_pipeline.py),
+so a click here should surface the same detail a click in that list would."""
 from __future__ import annotations
 
-from PySide6.QtCore import QRectF
+from PySide6.QtCore import QRectF, Signal
 from PySide6.QtGui import QBrush, QColor, QPen
 from PySide6.QtWidgets import QGraphicsLineItem, QGraphicsRectItem, QGraphicsScene, QGraphicsTextItem, QGraphicsView
 
@@ -37,18 +40,22 @@ def _compute_levels(depends_on_by_id: dict[str, tuple[str, ...]]) -> dict[str, i
 
 
 class GraphViewWidget(QGraphicsView):
+    node_clicked = Signal(str)  # node_id
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self._scene = QGraphicsScene(self)
         self.setScene(self._scene)
         self._current_run_id: str | None = None
         self._rects: dict[str, QGraphicsRectItem] = {}
+        self._node_id_by_rect: dict[int, str] = {}
 
     def build_layout(self, run_id: str, nodes: dict) -> None:
         """`nodes`: dict[node_id, GraphNode-like with .label and .depends_on]."""
         self._current_run_id = run_id
         self._scene.clear()
         self._rects.clear()
+        self._node_id_by_rect.clear()
 
         depends_on_by_id = {node_id: node.depends_on for node_id, node in nodes.items()}
         levels = _compute_levels(depends_on_by_id)
@@ -79,6 +86,7 @@ class GraphViewWidget(QGraphicsView):
             rect.setPen(QPen(QColor("#1e1f22"), 1))
             self._scene.addItem(rect)
             self._rects[node_id] = rect
+            self._node_id_by_rect[id(rect)] = node_id
 
             label = QGraphicsTextItem(node.label)
             label.setDefaultTextColor(QColor("white"))
@@ -95,3 +103,10 @@ class GraphViewWidget(QGraphicsView):
         if rect is None:
             return
         rect.setBrush(QBrush(_STATUS_COLORS.get(event.status, QColor("gray"))))
+
+    def mousePressEvent(self, event) -> None:
+        item = self.itemAt(event.pos())
+        node_id = self._node_id_by_rect.get(id(item))
+        if node_id is not None:
+            self.node_clicked.emit(node_id)
+        super().mousePressEvent(event)

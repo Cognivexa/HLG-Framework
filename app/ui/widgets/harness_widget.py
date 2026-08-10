@@ -1,12 +1,20 @@
-"""Harness Engineering tab: run status banner + live 18-step checklist."""
+"""Harness Engineering tab: run status banner + live 21-step checklist."""
 from __future__ import annotations
 
-from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QSplitter, QVBoxLayout, QWidget
+import os
+import subprocess
+from pathlib import Path
+
+from PySide6.QtWidgets import QComboBox, QHBoxLayout, QLabel, QPushButton, QSplitter, QVBoxLayout, QWidget
 
 from app.core.events import PipelineEvent, StepEvent, bus
+from app.core.logging_setup import get_logger
+from app.core.skills import ensure_starter_skills_file
 from app.ui.widgets.issue_sidebar import IssueSidebarWidget
 from app.ui.widgets.pipeline_step_list import PipelineStepListWidget
 from app.ui.widgets.provider_model_selector import ProviderModelSelectorWidget
+
+logger = get_logger(__name__)
 
 
 class HarnessWidget(QWidget):
@@ -18,18 +26,27 @@ class HarnessWidget(QWidget):
         self._project_combo.addItems(settings.projects)
 
         self._description_label = QLabel(
-            "Runs automatically whenever you save a file in a monitored project: an 18-step "
-            "sequential check covering secrets, security, dependencies, static analysis, build, "
-            "tests, an AI code review, RAG lookup, and an architecture check. If it passes, "
+            "Runs automatically whenever you save a file in a monitored project: a 21-step "
+            "sequential check covering secrets, PII/PHI, security, dependencies, static analysis, "
+            "build, tests, an AI code review, RAG lookup, and an architecture check. If it passes, "
             "Graph Engineering runs next automatically."
         )
         self._description_label.setWordWrap(True)
 
         self._status_label = QLabel("Waiting for file changes…")
 
+        self._skills_btn = QPushButton("Open/Create HARNESS.md")
+        self._skills_btn.setToolTip(
+            "Project-specific standards and context, automatically included in every AI "
+            "review and fix prompt for this project — see docs/HARNESS_LOOP_GRAPH_DEFINITIONS.md. "
+            "Creates a starter file with guidance if one doesn't exist yet."
+        )
+        self._skills_btn.clicked.connect(self._open_skills_file)
+
         header = QHBoxLayout()
         header.addWidget(QLabel("Last active project:"))
         header.addWidget(self._project_combo, 1)
+        header.addWidget(self._skills_btn)
 
         self._model_selector = ProviderModelSelectorWidget(
             "Review model", settings, llm_client, "harness_review_provider", "harness_review_model"
@@ -62,6 +79,21 @@ class HarnessWidget(QWidget):
             idx = self._project_combo.findText(current)
             if idx >= 0:
                 self._project_combo.setCurrentIndex(idx)
+
+    def _open_skills_file(self) -> None:
+        project_path = self._project_combo.currentText().strip()
+        if not project_path:
+            self._status_label.setText("Select a monitored project first.")
+            return
+        path = ensure_starter_skills_file(Path(project_path))
+        try:
+            subprocess.run(["code", "-g", str(path)], check=False)
+        except FileNotFoundError:
+            try:
+                os.startfile(str(path))  # noqa: S606 - opening a file with its default app is the intended action
+            except OSError:
+                logger.warning("Could not open %s with any editor.", path)
+                self._status_label.setText(f"Created {path} — open it manually to edit.")
 
     def _on_step(self, event: StepEvent) -> None:
         self._step_list.on_step_event(event)
