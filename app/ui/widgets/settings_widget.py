@@ -81,7 +81,12 @@ class SettingsWidget(QWidget):
 
         behavior_box = QGroupBox("Behavior")
         self._theme_combo = QComboBox()
-        self._theme_combo.addItems(["dark", "light"])
+        self._theme_combo.addItems(["dark", "light", "aurora"])
+        self._theme_combo.setToolTip(
+            "dark / light: the original enterprise look. aurora: a deep-navy, "
+            "multi-accent theme (blue/purple/orange/teal) with gradient buttons "
+            "and rounder controls."
+        )
         self._theme_combo.setCurrentText(settings.theme)
 
         self._retry_spin = QSpinBox()

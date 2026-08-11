@@ -1,0 +1,825 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Era of AI Engineering — HLG Framework</title>
+<style>
+  :root {
+    --bg: #070b16;
+    --surface: #10152a;
+    --surface-2: #141a33;
+    --line: #1f2745;
+    --line-soft: #171d38;
+    --ink: #e9edfb;
+    --ink-dim: #96a0c4;
+    --ink-faint: #5c6690;
+
+    --prompt: #4f8dff;
+    --prompt-dim: #2b3f6e;
+    --context: #b28cfb;
+    --context-dim: #3a2f66;
+    --harness: #fb923c;
+    --harness-dim: #5a3b22;
+    --loop: #34d399;
+    --loop-dim: #1f4a3d;
+
+    --font-display: "Segoe UI Variable Display", "Segoe UI Semibold", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "Cascadia Code", "Cascadia Mono", ui-monospace, "Consolas", "SFMono-Regular", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(680px 420px at 14% -6%, rgba(79, 141, 255, 0.14), transparent 60%),
+      radial-gradient(620px 460px at 88% 18%, rgba(178, 140, 251, 0.10), transparent 60%),
+      radial-gradient(720px 520px at 50% 100%, rgba(52, 211, 153, 0.07), transparent 60%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+
+  ::selection { background: var(--prompt-dim); color: var(--ink); }
+
+  a { color: inherit; }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(7, 11, 22, 0.82);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .topbar a.back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+
+  .topbar a.back:hover { color: var(--ink); border-color: var(--prompt); }
+
+  .wrap {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 0 28px 140px;
+  }
+
+  /* ---------- Header ---------- */
+
+  header.hero {
+    padding: 64px 0 56px;
+    max-width: 1040px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 26px;
+  }
+
+  .kicker .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--loop);
+    box-shadow: 0 0 8px var(--loop);
+  }
+
+  h1.title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(32px, 5.4vw, 54px);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+
+  h1.title .prompt { color: var(--prompt); }
+  h1.title .context { color: var(--context); }
+  h1.title .harness { color: var(--harness); }
+  h1.title .loop { color: var(--loop); }
+  h1.title .vs { color: var(--ink-faint); font-weight: 500; }
+
+  p.subtitle {
+    font-size: 17px;
+    color: var(--ink-dim);
+    max-width: 620px;
+    margin: 0 auto;
+    text-wrap: balance;
+  }
+
+  p.subtitle strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Legend strip ---------- */
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 34px;
+  }
+
+  .legend .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius: 8px;
+  }
+
+  .legend .chip i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    display: inline-block;
+  }
+
+  /* ---------- Timeline layout ---------- */
+
+  .timeline-items {
+    position: relative;
+    margin-top: 76px;
+  }
+
+  .timeline-items::before {
+    content: "";
+    position: absolute;
+    left: 27px;
+    top: 6px;
+    bottom: 70px;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--prompt) 0%, var(--prompt) 22%,
+      var(--context) 22%, var(--context) 47%,
+      var(--harness) 47%, var(--harness) 72%,
+      var(--loop) 72%, var(--loop) 100%
+    );
+    opacity: 0.35;
+  }
+
+  .era {
+    position: relative;
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0 28px;
+    padding-bottom: 64px;
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.7s ease, transform 0.7s ease;
+  }
+
+  .era.in-view { opacity: 1; transform: translateY(0); }
+
+  .era:last-of-type { padding-bottom: 0; }
+
+  .era .badge {
+    position: sticky;
+    top: 28px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 15px;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    color: var(--ink-faint);
+    transition: border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+    grid-column: 1;
+    align-self: start;
+  }
+
+  .era.in-view .badge {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-dim);
+  }
+
+  .era-body { grid-column: 2; min-width: 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 30px 30px 26px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 28px;
+    align-items: center;
+  }
+
+  .era .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+
+  .era h2 {
+    font-family: var(--font-display);
+    font-size: 23px;
+    font-weight: 700;
+    margin: 0 0 12px;
+    letter-spacing: -0.005em;
+  }
+
+  .era h2 .num {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--ink-faint);
+    margin-right: 10px;
+    font-size: 19px;
+  }
+
+  .attribution {
+    display: inline-block;
+    font-size: 12px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: #05070d;
+    background: var(--accent);
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 16px;
+  }
+
+  .era p.desc {
+    color: var(--ink-dim);
+    font-size: 14.5px;
+    margin: 0 0 18px;
+  }
+
+  .era p.desc b { color: var(--ink); font-weight: 600; }
+  .era p.desc .accent-word { color: var(--accent); font-weight: 600; }
+
+  .traits {
+    list-style: none;
+    margin: 0 0 18px;
+    padding: 0;
+    display: grid;
+    gap: 8px;
+  }
+
+  .traits li {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 13.5px;
+    color: var(--ink-dim);
+  }
+
+  .traits .n {
+    flex: none;
+    width: 19px;
+    height: 19px;
+    border-radius: 5px;
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  .truth {
+    display: flex;
+    gap: 9px;
+    align-items: flex-start;
+    font-style: italic;
+    font-size: 13.5px;
+    color: var(--ink-faint);
+    border-top: 1px dashed var(--line);
+    padding-top: 14px;
+  }
+
+  .truth svg { flex: none; margin-top: 2px; color: var(--accent); }
+
+  .diagram-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    padding: 14px;
+    min-height: 220px;
+  }
+
+  .diagram-slot svg { width: 100%; height: auto; overflow: visible; }
+  figure { margin: 0; width: 100%; }
+  figcaption { display: none; }
+
+  /* Per-era accent binding */
+  .era[data-era="prompt"]   { --accent: var(--prompt);   --accent-dim: var(--prompt-dim); }
+  .era[data-era="context"]  { --accent: var(--context);  --accent-dim: var(--context-dim); }
+  .era[data-era="harness"]  { --accent: var(--harness);  --accent-dim: var(--harness-dim); }
+  .era[data-era="loop"]     { --accent: var(--loop);     --accent-dim: var(--loop-dim); }
+
+  /* ---------- Bottom line ---------- */
+
+  .bottom-line {
+    margin-top: 12px;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(90deg, var(--prompt), var(--context), var(--harness), var(--loop));
+  }
+
+  .bottom-line .inner {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 30px 34px;
+  }
+
+  .bottom-line h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    margin: 0 0 12px;
+  }
+
+  .bottom-line p {
+    margin: 0;
+    font-size: 15px;
+    color: var(--ink-dim);
+    max-width: 640px;
+  }
+
+  .bottom-line p b.prompt { color: var(--prompt); }
+  .bottom-line p b.context { color: var(--context); }
+  .bottom-line p b.harness { color: var(--harness); }
+  .bottom-line p b.loop { color: var(--loop); }
+  .bottom-line p b { font-weight: 700; }
+
+  footer.credit {
+    text-align: center;
+    margin-top: 56px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- SVG diagram base ---------- */
+
+  .diagram-slot svg text {
+    font-family: var(--font-mono);
+    fill: currentColor;
+  }
+  .diagram-slot svg .lbl { font-size: 9.5px; letter-spacing: 0.04em; }
+  .diagram-slot svg .lbl-strong { font-size: 10.5px; font-weight: 700; }
+  .diagram-slot svg .lbl-dim { fill: var(--ink-faint); }
+  .diagram-slot svg .node-line { stroke: var(--line); }
+  .diagram-slot svg .node-fill { fill: var(--surface); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .flow-dash { stroke-dasharray: 4 5; animation: dash-flow 1.1s linear infinite; }
+    .drop-item { animation: drop-fade 3.2s ease-in-out infinite; }
+    .pulse-dot { animation: pulse-travel 2.4s ease-in-out infinite; }
+    .orbit-marker { animation: orbit 5.5s linear infinite; }
+    .diamond-pulse { animation: diamond-glow 5.5s ease-in-out infinite; }
+    .spoke-pulse { animation: spoke-travel 2.6s ease-in-out infinite; }
+  }
+
+  @keyframes dash-flow { to { stroke-dashoffset: -18; } }
+
+  @keyframes drop-fade {
+    0%, 40% { opacity: 1; transform: translateY(0); }
+    62% { opacity: 0.15; transform: translateY(10px); }
+    85%, 100% { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes pulse-travel {
+    0% { offset-distance: 0%; opacity: 0; }
+    8% { opacity: 1; }
+    92% { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  @keyframes spoke-travel {
+    0% { offset-distance: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    45% { opacity: 1; }
+    50% { offset-distance: 50%; opacity: 0; }
+    60% { offset-distance: 50%; opacity: 1; }
+    95% { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  @keyframes orbit {
+    to { offset-distance: 100%; }
+  }
+
+  @keyframes diamond-glow {
+    0%, 70% { filter: drop-shadow(0 0 0 transparent); }
+    82% { filter: drop-shadow(0 0 6px var(--loop)); }
+    100% { filter: drop-shadow(0 0 0 transparent); }
+  }
+
+  @media (max-width: 720px) {
+    .card { grid-template-columns: 1fr; }
+    .era { grid-template-columns: 40px 1fr; }
+    .era .badge { width: 40px; height: 40px; font-size: 12px; }
+    .timeline-items::before { left: 19px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="/">&larr; Live Mirror</a>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="kicker"><span class="dot"></span> era of ai engineering</span>
+    <h1 class="title">
+      <span class="prompt">Prompt</span> <span class="vs">vs</span>
+      <span class="context">context</span> <span class="vs">vs</span>
+      <span class="harness">harness</span> <span class="vs">vs</span>
+      <span class="loop">loop</span> engineering
+    </h1>
+    <p class="subtitle">The four eras of AI engineering. <strong>Each one builds on the last.</strong> None of them replaces what came before.</p>
+
+    <div class="legend">
+      <span class="chip"><i style="background:var(--prompt)"></i>01 &middot; the input</span>
+      <span class="chip"><i style="background:var(--context)"></i>02 &middot; the frame</span>
+      <span class="chip"><i style="background:var(--harness)"></i>03 &middot; the engine</span>
+      <span class="chip"><i style="background:var(--loop)"></i>04 &middot; the routine</span>
+    </div>
+  </header>
+
+  <!-- Each .era is a two-column grid row (badge, body); .timeline-items draws the connecting spine behind them all -->
+  <div class="timeline-items">
+
+    <!-- ============ 01 PROMPT ============ -->
+    <section class="era" data-era="prompt">
+      <div class="badge">01</div>
+      <div class="era-body">
+        <div class="card">
+          <div class="text">
+            <p class="eyebrow">The input</p>
+            <h2><span class="num">01</span>Prompt engineering</h2>
+            <span class="attribution">the original discipline</span>
+            <p class="desc">
+              You type <b>one message</b> and hope it lands. The role, the rules, the examples,
+              the format all have to fit inside <span class="accent-word">that one block of text.</span>
+              Get it wrong and you start over.
+            </p>
+            <ol class="traits">
+              <li><span class="n">1</span> One message in, one answer out</li>
+              <li><span class="n">2</span> No memory between chats</li>
+              <li><span class="n">3</span> No tools, just words</li>
+              <li><span class="n">4</span> You drive every step</li>
+            </ol>
+            <p class="truth">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              You write every word by hand.
+            </p>
+          </div>
+
+          <div class="diagram-slot">
+            <figure>
+              <svg viewBox="0 0 320 170" role="img" aria-label="You write raw text directly into the model, which returns one answer, with no memory or context stage in between.">
+                <defs>
+                  <marker id="pa1" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="currentColor"/></marker>
+                </defs>
+                <!-- person -->
+                <circle cx="28" cy="52" r="9" class="node-line node-fill" stroke-width="1.6"/>
+                <path d="M14 92 q14 -20 28 0" class="node-line node-fill" stroke-width="1.6" fill="var(--surface)"/>
+                <text x="28" y="112" text-anchor="middle" class="lbl-strong">YOU</text>
+                <text x="28" y="124" text-anchor="middle" class="lbl lbl-dim">writes every word</text>
+
+                <line x1="46" y1="66" x2="78" y2="66" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa1)"/>
+
+                <!-- THE INPUT -->
+                <rect x="80" y="30" width="100" height="72" rx="8" fill="var(--surface)" stroke="var(--prompt)" stroke-width="1.6"/>
+                <text x="130" y="46" text-anchor="middle" class="lbl-strong" style="fill:var(--prompt)">THE INPUT</text>
+                <line x1="94" y1="60" x2="166" y2="60" class="node-line" stroke-width="1.4"/>
+                <line x1="94" y1="72" x2="150" y2="72" class="node-line" stroke-width="1.4"/>
+                <line x1="94" y1="84" x2="160" y2="84" class="node-line" stroke-width="1.4"/>
+
+                <line x1="182" y1="66" x2="210" y2="66" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa1)"/>
+
+                <!-- LLM -->
+                <rect x="212" y="42" width="58" height="48" rx="8" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/>
+                <text x="241" y="63" text-anchor="middle" class="lbl-strong">LLM</text>
+                <text x="241" y="76" text-anchor="middle" class="lbl lbl-dim">the model</text>
+
+                <line x1="272" y1="66" x2="292" y2="66" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa1)"/>
+
+                <!-- ANSWER -->
+                <rect x="284" y="50" width="34" height="32" rx="16" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <text x="301" y="70" text-anchor="middle" class="lbl" style="font-size:8px">ANSWER</text>
+              </svg>
+              <figcaption>You write raw text directly into the model, which returns one answer.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 CONTEXT ============ -->
+    <section class="era" data-era="context">
+      <div class="badge">02</div>
+      <div class="era-body">
+        <div class="card">
+          <div class="text">
+            <p class="eyebrow">The frame</p>
+            <h2><span class="num">02</span>Context engineering</h2>
+            <span class="attribution">named by Andrej Karpathy</span>
+            <p class="desc">
+              The model only sees a <b>small window of text</b> at one time. So the real job
+              becomes picking <span class="accent-word">what goes in that window.</span> Notes, files,
+              past chats, tool results — all curated by you. Everything else gets cut.
+            </p>
+            <ol class="traits">
+              <li><span class="n">1</span> Pull from notes, files, tools, and past chats</li>
+              <li><span class="n">2</span> Cut what does not fit</li>
+              <li><span class="n">3</span> The unit of work is what stays in the window</li>
+              <li><span class="n">4</span> Better context beats a smarter prompt</li>
+            </ol>
+            <p class="truth">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              You curate what the model sees.
+            </p>
+          </div>
+
+          <div class="diagram-slot">
+            <figure>
+              <svg viewBox="0 0 320 190" role="img" aria-label="Notes, files, chats, and tool results feed into a frame; kept items pass through to the model while one is dropped.">
+                <defs>
+                  <marker id="pa2" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="currentColor"/></marker>
+                </defs>
+
+                <!-- 4 sources -->
+                <g class="lbl-dim">
+                  <rect x="4" y="16" width="15" height="15" rx="3" class="node-line node-fill" stroke-width="1.3"/>
+                  <rect x="4" y="42" width="15" height="15" rx="3" class="node-line node-fill" stroke-width="1.3"/>
+                  <rect x="4" y="68" width="15" height="15" rx="3" class="node-line node-fill drop-item" stroke-width="1.3"/>
+                  <rect x="4" y="94" width="15" height="15" rx="3" class="node-line node-fill" stroke-width="1.3"/>
+                </g>
+                <text x="11" y="122" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px">notes</text>
+                <text x="11" y="132" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px">files</text>
+                <text x="11" y="142" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px">chats</text>
+
+                <circle cx="30" cy="70" r="10" class="node-line node-fill" stroke-width="1.6"/>
+                <path d="M16 108 q14 -20 28 0" class="node-line node-fill" stroke-width="1.6" fill="var(--surface)"/>
+                <text x="30" y="150" text-anchor="middle" class="lbl-strong">YOU</text>
+                <text x="30" y="162" text-anchor="middle" class="lbl lbl-dim">picks what stays</text>
+
+                <line x1="48" y1="72" x2="76" y2="72" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa2)"/>
+
+                <!-- THE FRAME -->
+                <rect x="78" y="24" width="104" height="96" rx="8" fill="var(--surface)" stroke="var(--context)" stroke-width="1.6"/>
+                <text x="130" y="40" text-anchor="middle" class="lbl-strong" style="fill:var(--context)">THE FRAME</text>
+                <line x1="130" y1="48" x2="130" y2="108" stroke="var(--line)" stroke-width="1"/>
+                <text x="104" y="100" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px">keep</text>
+                <text x="156" y="100" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px">drop</text>
+                <circle cx="104" cy="70" r="3" fill="var(--context)"/>
+                <circle cx="104" cy="82" r="3" fill="var(--context)"/>
+                <circle cx="156" cy="76" r="3" fill="var(--ink-faint)" class="drop-item"/>
+
+                <line x1="184" y1="72" x2="210" y2="72" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa2)"/>
+
+                <rect x="212" y="48" width="58" height="48" rx="8" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/>
+                <text x="241" y="69" text-anchor="middle" class="lbl-strong">LLM</text>
+                <text x="241" y="82" text-anchor="middle" class="lbl lbl-dim">the model</text>
+
+                <line x1="272" y1="72" x2="292" y2="72" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa2)"/>
+                <rect x="284" y="56" width="34" height="32" rx="16" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <text x="301" y="76" text-anchor="middle" class="lbl" style="font-size:8px">ANSWER</text>
+              </svg>
+              <figcaption>Sources feed the frame; kept items reach the model, dropped ones don't.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 HARNESS ============ -->
+    <section class="era" data-era="harness">
+      <div class="badge">03</div>
+      <div class="era-body">
+        <div class="card">
+          <div class="text">
+            <p class="eyebrow">The engine</p>
+            <h2><span class="num">03</span>Harness engineering</h2>
+            <span class="attribution">popularized by builders</span>
+            <p class="desc">
+              A model on its own is <b>just a chatbot.</b> Wrap it in tools, memory, rules,
+              and helpers and it can run a real job. The harness is everything around
+              the model that <span class="accent-word">turns guesswork into reliable output.</span>
+            </p>
+            <ol class="traits">
+              <li><span class="n">1</span> The model plus tools, memory, rules, and helpers</li>
+              <li><span class="n">2</span> Strip the parts off and you're back to a chatbot</li>
+              <li><span class="n">3</span> Bolt them on and the model finishes real work</li>
+              <li><span class="n">4</span> A weak harness is the bottleneck, not the model</li>
+            </ol>
+            <p class="truth">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              You build the workshop the model runs inside.
+            </p>
+          </div>
+
+          <div class="diagram-slot">
+            <figure>
+              <svg viewBox="0 0 320 200" role="img" aria-label="The model sits inside an engine wrapped by tools, memory, and rules; the engine as a whole produces the answer.">
+                <defs>
+                  <marker id="pa3" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="currentColor"/></marker>
+                </defs>
+
+                <circle cx="26" cy="86" r="10" class="node-line node-fill" stroke-width="1.6"/>
+                <path d="M12 124 q14 -20 28 0" class="node-line node-fill" stroke-width="1.6" fill="var(--surface)"/>
+                <text x="26" y="146" text-anchor="middle" class="lbl-strong">YOU</text>
+                <text x="26" y="158" text-anchor="middle" class="lbl lbl-dim">sets the goal</text>
+
+                <line x1="44" y1="88" x2="70" y2="88" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa3)"/>
+
+                <!-- THE ENGINE (dashed) -->
+                <rect x="72" y="20" width="180" height="140" rx="10" fill="none" stroke="var(--harness)" stroke-width="1.6" stroke-dasharray="5 4"/>
+                <text x="162" y="14" text-anchor="middle" class="lbl-strong" style="fill:var(--harness)">THE ENGINE</text>
+
+                <!-- tool nodes -->
+                <rect x="150" y="30" width="24" height="16" rx="3" class="node-line node-fill" stroke-width="1.3"/>
+                <text x="162" y="60" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px">tools</text>
+
+                <rect x="90" y="120" width="24" height="16" rx="3" class="node-line node-fill" stroke-width="1.3"/>
+                <text x="102" y="122" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px" dy="-4">memory</text>
+
+                <rect x="212" y="120" width="24" height="16" rx="3" class="node-line node-fill" stroke-width="1.3"/>
+                <text x="224" y="122" text-anchor="middle" class="lbl lbl-dim" style="font-size:8px" dy="-4">rules</text>
+
+                <!-- model center -->
+                <rect x="132" y="76" width="60" height="34" rx="7" fill="var(--surface)" stroke="var(--harness)" stroke-width="1.6"/>
+                <text x="162" y="96" text-anchor="middle" class="lbl-strong" style="fill:var(--harness)">the model</text>
+
+                <!-- spokes -->
+                <path id="spoke-tools" d="M162 76 L162 46" class="node-line" stroke-width="1.3" fill="none"/>
+                <path id="spoke-mem" d="M132 100 L114 128" class="node-line" stroke-width="1.3" fill="none"/>
+                <path id="spoke-rules" d="M192 100 L224 128" class="node-line" stroke-width="1.3" fill="none"/>
+
+                <circle r="3" fill="var(--harness)" class="spoke-pulse" style="offset-path:path('M162 76 L162 46 L162 76')"/>
+                <circle r="3" fill="var(--harness)" class="spoke-pulse" style="offset-path:path('M132 100 L114 128 L132 100'); animation-delay:0.8s;"/>
+
+                <line x1="254" y1="88" x2="284" y2="88" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa3)"/>
+                <rect x="286" y="72" width="34" height="32" rx="16" fill="none" stroke="currentColor" stroke-width="1.4"/>
+                <text x="303" y="92" text-anchor="middle" class="lbl" style="font-size:8px">ANSWER</text>
+              </svg>
+              <figcaption>Tools, memory, and rules wrap the model; the engine as a whole answers.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04 LOOP ============ -->
+    <section class="era" data-era="loop">
+      <div class="badge">04</div>
+      <div class="era-body">
+        <div class="card">
+          <div class="text">
+            <p class="eyebrow">The routine</p>
+            <h2><span class="num">04</span>Loop engineering</h2>
+            <span class="attribution">named by Addy Osmani</span>
+            <p class="desc">
+              You stop <b>typing prompts.</b> You build a loop that prompts the agent for you.
+              The loop finds the work, picks a task, runs it, checks the result,
+              and <span class="accent-word">stops when the goal is met.</span>
+            </p>
+            <ol class="traits">
+              <li><span class="n">1</span> A loop runs on a timer or a trigger</li>
+              <li><span class="n">2</span> It picks the task, does the work, and checks itself</li>
+              <li><span class="n">3</span> You set the goal, the loop does the rest</li>
+              <li><span class="n">4</span> The harness runs one agent, the loop runs the harness</li>
+            </ol>
+            <p class="truth">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              The agent drives every step.
+            </p>
+          </div>
+
+          <div class="diagram-slot">
+            <figure>
+              <svg viewBox="0 0 260 230" role="img" aria-label="A goal feeds a repeating loop of act, check, and fix around the harness, which periodically checks whether the goal has been met.">
+                <defs>
+                  <marker id="pa4" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="currentColor"/></marker>
+                </defs>
+
+                <rect x="90" y="6" width="80" height="30" rx="7" fill="var(--surface)" stroke="var(--loop)" stroke-width="1.6"/>
+                <text x="130" y="26" text-anchor="middle" class="lbl-strong" style="fill:var(--loop)">GOAL</text>
+
+                <line x1="130" y1="36" x2="130" y2="58" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa4)"/>
+
+                <circle cx="130" cy="128" r="62" fill="none" stroke="var(--loop)" stroke-width="1.6" stroke-dasharray="3 5"/>
+                <circle cx="130" cy="128" r="30" fill="var(--surface)" stroke="var(--loop)" stroke-width="1.4"/>
+                <text x="130" y="124" text-anchor="middle" class="lbl-strong" style="fill:var(--loop); font-size:9.5px">the</text>
+                <text x="130" y="136" text-anchor="middle" class="lbl-strong" style="fill:var(--loop); font-size:9.5px">harness</text>
+
+                <text x="65" y="78" text-anchor="middle" class="lbl lbl-dim">repeat</text>
+                <text x="195" y="78" text-anchor="middle" class="lbl lbl-dim">act</text>
+                <text x="60" y="182" text-anchor="middle" class="lbl lbl-dim">fix</text>
+                <text x="196" y="182" text-anchor="middle" class="lbl lbl-dim">check</text>
+
+                <circle r="3.5" fill="var(--loop)" class="orbit-marker" style="offset-path:path('M130 66 A62 62 0 1 1 129.9 66'); offset-rotate:0deg;"/>
+
+                <line x1="192" y1="128" x2="212" y2="128" stroke="currentColor" stroke-width="1.6" class="flow-dash" marker-end="url(#pa4)"/>
+
+                <g class="diamond-pulse">
+                  <polygon points="238,104 262,128 238,152 214,128" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/>
+                  <text x="238" y="124" text-anchor="middle" class="lbl" style="font-size:7.5px">goal</text>
+                  <text x="238" y="133" text-anchor="middle" class="lbl" style="font-size:7.5px">met?</text>
+                </g>
+              </svg>
+              <figcaption>The loop cycles act, check, and fix around the harness until the goal is met.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <div class="bottom-line">
+    <div class="inner">
+      <h3>The bottom line</h3>
+      <p>
+        Prompts did not die. Context did not die. The harness did not die.<br />
+        Each era adds a new layer. You still write <b class="prompt">prompts</b>.
+        You still curate <b class="context">context</b>. You still build a <b class="harness">harness</b>.
+        Now you also design the <b class="loop">loop</b> that runs it all.
+      </p>
+    </div>
+  </div>
+
+  <footer class="credit">era of ai engineering &middot; prompt &rarr; context &rarr; harness &rarr; loop</footer>
+
+</div>
+
+<script>
+  (function () {
+    var eras = document.querySelectorAll('.era');
+    if (!('IntersectionObserver' in window)) {
+      eras.forEach(function (el) { el.classList.add('in-view'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+        }
+      });
+    }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
+    eras.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+</body>
+</html>

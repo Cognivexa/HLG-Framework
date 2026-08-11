@@ -32,6 +32,7 @@ from app.core.logging_setup import get_logger
 logger = get_logger(__name__)
 
 _PAGE_PATH = Path(__file__).parent / "static" / "index.html"
+_ENGINEERING_FLOW_PATH = Path(__file__).parent / "static" / "engineering-flow.html"
 _MAX_HISTORY = 400
 
 
@@ -66,6 +67,12 @@ class WebMirrorServer:
         @app.get("/", response_class=HTMLResponse)
         async def index() -> str:
             return _PAGE_PATH.read_text(encoding="utf-8")
+
+        @app.get("/engineering-flow", response_class=HTMLResponse)
+        async def engineering_flow() -> str:
+            # A static, standalone explainer page — no bus/WebSocket wiring,
+            # unlike everything else this server serves.
+            return _ENGINEERING_FLOW_PATH.read_text(encoding="utf-8")
 
         @app.get("/api/history")
         async def history() -> list[dict]:

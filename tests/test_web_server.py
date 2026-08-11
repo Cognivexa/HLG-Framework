@@ -38,6 +38,15 @@ def test_index_route_serves_html():
     assert "HLG Framework" in resp.text
 
 
+def test_engineering_flow_route_serves_html():
+    server = _server()
+    client = TestClient(server._app)
+    resp = client.get("/engineering-flow")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "Era of AI Engineering" in resp.text
+
+
 def test_history_route_starts_empty():
     server = _server()
     client = TestClient(server._app)
