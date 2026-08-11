@@ -30,7 +30,8 @@
   }
 
   * { box-sizing: border-box; }
-  html { color-scheme: dark; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 
   body {
     margin: 0;
@@ -165,7 +166,11 @@
     border: 1px solid var(--line);
     padding: 7px 12px;
     border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
   }
+
+  .legend .chip:hover, .legend .chip:focus-visible { color: var(--ink); border-color: var(--ink-faint); }
 
   .legend .chip i {
     width: 8px;
@@ -343,7 +348,40 @@
 
   .truth svg { flex: none; margin-top: 2px; color: var(--accent); }
 
+  .cite {
+    margin: 12px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink-faint);
+    border-left: 2px solid var(--accent-dim);
+    padding-left: 10px;
+  }
+
+  .cite b { color: var(--ink-dim); font-weight: 600; }
+  .cite a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted currentColor; }
+  .cite a:hover { border-bottom-style: solid; }
+
+  .see-it-work {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 16px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-dim);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+
+  .see-it-work:hover, .see-it-work:focus-visible { border-color: var(--accent); }
+  .see-it-work:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
   .diagram-slot {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -352,11 +390,245 @@
     border-radius: 12px;
     padding: 14px;
     min-height: 220px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .diagram-slot:hover, .diagram-slot:focus-visible {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+  }
+
+  .diagram-slot:focus-visible { outline: none; }
+
+  .diagram-hint {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    color: var(--accent);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 3px 8px;
+    border-radius: 999px;
+    opacity: 0;
+    transform: translateY(-3px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+  }
+
+  .diagram-slot:hover .diagram-hint, .diagram-slot:focus-visible .diagram-hint {
+    opacity: 1;
+    transform: translateY(0);
   }
 
   .diagram-slot svg { width: 100%; height: auto; overflow: visible; }
   figure { margin: 0; width: 100%; }
   figcaption { display: none; }
+
+  /* ---------- Worked-example modal ---------- */
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 6, 13, 0.72);
+    backdrop-filter: blur(3px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .modal-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .modal-panel {
+    width: 100%;
+    max-width: 640px;
+    max-height: 84vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 28px 28px;
+    transform: translateY(10px) scale(0.98);
+    transition: transform 0.25s ease;
+  }
+
+  .modal-backdrop.open .modal-panel { transform: translateY(0) scale(1); }
+
+  .modal-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+
+  .modal-head h3 {
+    font-family: var(--font-display);
+    font-size: 19px;
+    margin: 0;
+    color: var(--accent);
+  }
+
+  .modal-close {
+    flex: none;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--ink-dim);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+  }
+
+  .modal-close:hover, .modal-close:focus-visible { color: var(--ink); border-color: var(--accent); }
+
+  .modal-sub {
+    font-size: 13px;
+    color: var(--ink-dim);
+    margin: 0 0 20px;
+  }
+
+  .wt-input-row {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 18px;
+  }
+
+  .wt-input-row .wt-label {
+    display: block;
+    font-size: 10.5px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: 6px;
+  }
+
+  .wt-typed {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    border-right: 2px solid var(--accent);
+    color: var(--ink);
+    vertical-align: bottom;
+  }
+
+  .modal-backdrop.open .wt-typed {
+    animation: typewriter 1.1s steps(var(--chars, 30), end) 0.15s forwards;
+  }
+
+  .wt-steps { display: grid; gap: 10px; }
+
+  .wt-step {
+    display: grid;
+    grid-template-columns: 84px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding: 11px 13px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+
+  .modal-backdrop.open .wt-step {
+    animation: stepIn 0.45s ease forwards;
+    animation-delay: var(--delay, 0s);
+  }
+
+  .wt-step .wt-tag {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding-top: 2px;
+  }
+
+  .wt-step .wt-body {
+    font-size: 13px;
+    color: var(--ink-dim);
+    white-space: pre-wrap;
+    font-family: var(--font-body);
+  }
+
+  .wt-step .wt-body code, .wt-step .wt-body.mono {
+    font-family: var(--font-mono);
+    color: var(--ink);
+    font-size: 12.5px;
+  }
+
+  .wt-step.wt-good .wt-body { color: var(--loop); }
+  .wt-step.wt-bad .wt-body { color: var(--ink-dim); }
+
+  .modal-note {
+    margin: 18px 0 0;
+    padding-top: 14px;
+    border-top: 1px dashed var(--line);
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--ink-faint);
+  }
+
+  .modal-replay {
+    margin-top: 18px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 7px 13px;
+    cursor: pointer;
+  }
+
+  .modal-replay:hover, .modal-replay:focus-visible { color: var(--ink); border-color: var(--accent); }
+
+  @keyframes stepIn { to { opacity: 1; transform: translateX(0); } }
+  @keyframes typewriter { to { width: 100%; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wt-typed { animation: none !important; border-right: none; width: 100% !important; }
+    .wt-step { animation: none !important; opacity: 1; transform: none; }
+  }
+
+  /* ---------- Sources footer ---------- */
+
+  .sources {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  .sources h4 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 10px;
+  }
+
+  .sources ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+  .sources li { font-size: 12.5px; color: var(--ink-dim); }
+  .sources a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px dotted var(--ink-faint); }
+  .sources a:hover { color: var(--accent); border-bottom-color: var(--accent); }
 
   /* Per-era accent binding */
   .era[data-era="prompt"]   { --accent: var(--prompt);   --accent-dim: var(--prompt-dim); }
@@ -488,19 +760,19 @@
     </h1>
     <p class="subtitle">The four eras of AI engineering. <strong>Each one builds on the last.</strong> None of them replaces what came before.</p>
 
-    <div class="legend">
-      <span class="chip"><i style="background:var(--prompt)"></i>01 &middot; the input</span>
-      <span class="chip"><i style="background:var(--context)"></i>02 &middot; the frame</span>
-      <span class="chip"><i style="background:var(--harness)"></i>03 &middot; the engine</span>
-      <span class="chip"><i style="background:var(--loop)"></i>04 &middot; the routine</span>
-    </div>
+    <nav class="legend">
+      <a class="chip" href="#era-prompt"><i style="background:var(--prompt)"></i>01 &middot; the input</a>
+      <a class="chip" href="#era-context"><i style="background:var(--context)"></i>02 &middot; the frame</a>
+      <a class="chip" href="#era-harness"><i style="background:var(--harness)"></i>03 &middot; the engine</a>
+      <a class="chip" href="#era-loop"><i style="background:var(--loop)"></i>04 &middot; the routine</a>
+    </nav>
   </header>
 
   <!-- Each .era is a two-column grid row (badge, body); .timeline-items draws the connecting spine behind them all -->
   <div class="timeline-items">
 
     <!-- ============ 01 PROMPT ============ -->
-    <section class="era" data-era="prompt">
+    <section class="era" data-era="prompt" id="era-prompt">
       <div class="badge">01</div>
       <div class="era-body">
         <div class="card">
@@ -523,9 +795,11 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
               You write every word by hand.
             </p>
+            <button class="see-it-work" data-era="prompt">&#9654; See it work</button>
           </div>
 
-          <div class="diagram-slot">
+          <div class="diagram-slot" data-era="prompt" role="button" tabindex="0" aria-label="Open a worked example of prompt engineering">
+            <span class="diagram-hint">Click to see it work &rarr;</span>
             <figure>
               <svg viewBox="0 0 320 170" role="img" aria-label="You write raw text directly into the model, which returns one answer, with no memory or context stage in between.">
                 <defs>
@@ -567,7 +841,7 @@
     </section>
 
     <!-- ============ 02 CONTEXT ============ -->
-    <section class="era" data-era="context">
+    <section class="era" data-era="context" id="era-context">
       <div class="badge">02</div>
       <div class="era-body">
         <div class="card">
@@ -590,9 +864,16 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
               You curate what the model sees.
             </p>
+            <p class="cite">
+              &ldquo;Context engineering is the delicate art and science of filling the context
+              window with just the right information for the next step.&rdquo;
+              — <a href="https://x.com/karpathy/status/1937902205765607626" target="_blank" rel="noopener">Andrej Karpathy, June 2025</a>
+            </p>
+            <button class="see-it-work" data-era="context">&#9654; See it work</button>
           </div>
 
-          <div class="diagram-slot">
+          <div class="diagram-slot" data-era="context" role="button" tabindex="0" aria-label="Open a worked example of context engineering">
+            <span class="diagram-hint">Click to see it work &rarr;</span>
             <figure>
               <svg viewBox="0 0 320 190" role="img" aria-label="Notes, files, chats, and tool results feed into a frame; kept items pass through to the model while one is dropped.">
                 <defs>
@@ -645,7 +926,7 @@
     </section>
 
     <!-- ============ 03 HARNESS ============ -->
-    <section class="era" data-era="harness">
+    <section class="era" data-era="harness" id="era-harness">
       <div class="badge">03</div>
       <div class="era-body">
         <div class="card">
@@ -668,9 +949,17 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
               You build the workshop the model runs inside.
             </p>
+            <p class="cite">
+              Anthropic and the wider agent-building community call this the
+              <b>agent harness</b> (or scaffolding) — everything around the weights that turns
+              raw model capability into auditable, reliable software behavior.
+              — <a href="https://addyosmani.com/blog/agent-harness-engineering/" target="_blank" rel="noopener">Addy Osmani, agent harness engineering</a>
+            </p>
+            <button class="see-it-work" data-era="harness">&#9654; See it work</button>
           </div>
 
-          <div class="diagram-slot">
+          <div class="diagram-slot" data-era="harness" role="button" tabindex="0" aria-label="Open a worked example of harness engineering">
+            <span class="diagram-hint">Click to see it work &rarr;</span>
             <figure>
               <svg viewBox="0 0 320 200" role="img" aria-label="The model sits inside an engine wrapped by tools, memory, and rules; the engine as a whole produces the answer.">
                 <defs>
@@ -722,7 +1011,7 @@
     </section>
 
     <!-- ============ 04 LOOP ============ -->
-    <section class="era" data-era="loop">
+    <section class="era" data-era="loop" id="era-loop">
       <div class="badge">04</div>
       <div class="era-body">
         <div class="card">
@@ -745,9 +1034,18 @@
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
               The agent drives every step.
             </p>
+            <p class="cite">
+              Osmani's five components of a real loop: <b>automations</b> (a schedule or trigger),
+              <b>worktrees</b> (isolated parallel copies), <b>skills</b> (codified know-how),
+              <b>plugins/connectors</b> (real tools via MCP), and <b>subagents</b> (independent
+              verification) — plus shared external state so progress survives between runs.
+              — <a href="https://addyosmani.com/blog/loop-engineering/" target="_blank" rel="noopener">Addy Osmani, Loop Engineering</a>
+            </p>
+            <button class="see-it-work" data-era="loop">&#9654; See it work</button>
           </div>
 
-          <div class="diagram-slot">
+          <div class="diagram-slot" data-era="loop" role="button" tabindex="0" aria-label="Open a worked example of loop engineering">
+            <span class="diagram-hint">Click to see it work &rarr;</span>
             <figure>
               <svg viewBox="0 0 260 230" role="img" aria-label="A goal feeds a repeating loop of act, check, and fix around the harness, which periodically checks whether the goal has been met.">
                 <defs>
@@ -800,8 +1098,29 @@
     </div>
   </div>
 
+  <div class="sources">
+    <h4>Sources</h4>
+    <ul>
+      <li><a href="https://x.com/karpathy/status/1937902205765607626" target="_blank" rel="noopener">Andrej Karpathy — the tweet that named context engineering (X, Jun 2025)</a></li>
+      <li><a href="https://addyosmani.com/blog/agent-harness-engineering/" target="_blank" rel="noopener">Addy Osmani — Agent Harness Engineering</a></li>
+      <li><a href="https://addyosmani.com/blog/loop-engineering/" target="_blank" rel="noopener">Addy Osmani — Loop Engineering: designing loops that prompt coding agents</a></li>
+    </ul>
+  </div>
+
   <footer class="credit">era of ai engineering &middot; prompt &rarr; context &rarr; harness &rarr; loop</footer>
 
+</div>
+
+<div class="modal-backdrop" id="modal">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">—</h3>
+      <button class="modal-close" id="modalClose" aria-label="Close">&#10005;</button>
+    </div>
+    <p class="modal-sub" id="modalSub"></p>
+    <div id="modalBody"></div>
+    <button class="modal-replay" id="modalReplay">&#8635; Replay</button>
+  </div>
 </div>
 
 <script>
@@ -819,6 +1138,138 @@
       });
     }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
     eras.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+
+<script>
+  (function () {
+    // One worked example per era: a concrete input, then the steps that
+    // input actually goes through — this is what "See it work" plays back,
+    // as opposed to the ambient/idle animation on the small diagrams above.
+    var EXAMPLES = {
+      prompt: {
+        title: '01 &middot; Prompt engineering, worked example',
+        sub: 'One message in. One answer out. Nothing is remembered afterward.',
+        input: 'Write a Python function that reverses a string.',
+        steps: [
+          { tag: 'THE INPUT', body: 'Write a Python function that reverses a string.', mono: true },
+          { tag: 'LLM', body: 'Reads only the text above. It has no file, no project, no prior turn to draw on.' },
+          { tag: 'ANSWER', body: 'def reverse_string(s):\n    return s[::-1]', mono: true, good: true },
+        ],
+        note: 'Ask a follow-up like "now handle Unicode" and it has no memory of this exchange — you have to restate everything.',
+      },
+      context: {
+        title: '02 &middot; Context engineering, worked example',
+        sub: 'The same question, but now the window is curated before the model ever sees it.',
+        input: 'Fix the bug in checkout.py',
+        steps: [
+          { tag: 'SOURCE', body: 'checkout.py (current file, 40 lines)', good: true },
+          { tag: 'SOURCE', body: 'Past chat: "we use Stripe, not PayPal"', good: true },
+          { tag: 'SOURCE', body: 'Error log: KeyError: \'currency\'', good: true },
+          { tag: 'DROPPED', body: 'An unrelated chat from 3 weeks ago about deployment', bad: true },
+          { tag: 'LLM', body: 'Sees the file, the constraint, and the real error — not the whole project history.' },
+          { tag: 'ANSWER', body: 'The KeyError is from a Stripe response missing \'currency\' on refunds — default it to the order\'s original currency.', good: true },
+        ],
+        note: 'Without the curation step, the irrelevant chat competes for space with the file that actually matters.',
+      },
+      harness: {
+        title: '03 &middot; Harness engineering, worked example',
+        sub: 'The model gets a tool, not just a guess — and the tool\'s real result drives the answer.',
+        input: 'Why are the tests failing?',
+        steps: [
+          { tag: 'GOAL', body: 'Why are the tests failing?' },
+          { tag: 'TOOL CALL', body: 'run: pytest -q', mono: true },
+          { tag: 'TOOL RESULT', body: '1 failed — test_auth.py:42 AssertionError: token expired', mono: true },
+          { tag: 'MODEL + RESULT', body: 'The expiry check compares a naive datetime to an aware one — add tzinfo=timezone.utc.', good: true },
+        ],
+        note: 'Without the harness, the model can only guess why tests fail — it never actually runs them.',
+      },
+      loop: {
+        title: '04 &middot; Loop engineering, worked example',
+        sub: 'One goal, several unattended passes, until the check actually passes.',
+        input: 'Goal: get test coverage above 80%',
+        steps: [
+          { tag: 'ITER 1', body: 'act: write tests for auth.py  →  check: coverage 62%  →  not met' },
+          { tag: 'ITER 2', body: 'act: write tests for payments.py  →  check: coverage 74%  →  not met' },
+          { tag: 'ITER 3', body: 'act: write tests for utils.py  →  check: coverage 86%  →  goal met', good: true },
+        ],
+        note: 'No one was watching between iterations — the loop kept acting and checking on its own until the goal held true.',
+      },
+    };
+
+    var modal = document.getElementById('modal');
+    var titleEl = document.getElementById('modalTitle');
+    var subEl = document.getElementById('modalSub');
+    var bodyEl = document.getElementById('modalBody');
+    var closeBtn = document.getElementById('modalClose');
+    var replayBtn = document.getElementById('modalReplay');
+    var currentEra = null;
+    var lastFocused = null;
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    function render(eraKey) {
+      var ex = EXAMPLES[eraKey];
+      if (!ex) return;
+      titleEl.innerHTML = ex.title;
+      subEl.textContent = ex.sub;
+
+      var html = '';
+      html += '<div class="wt-input-row"><span class="wt-label">You type</span>' +
+        '<span class="wt-typed" style="--chars:' + ex.input.length + '">' + escapeHtml(ex.input) + '</span></div>';
+      html += '<div class="wt-steps">';
+      ex.steps.forEach(function (step, i) {
+        var cls = 'wt-step' + (step.good ? ' wt-good' : '') + (step.bad ? ' wt-bad' : '');
+        var delay = (0.35 + i * 0.32).toFixed(2) + 's';
+        var bodyCls = step.mono ? 'wt-body mono' : 'wt-body';
+        html += '<div class="' + cls + '" style="--delay:' + delay + '">' +
+          '<span class="wt-tag">' + escapeHtml(step.tag) + '</span>' +
+          '<span class="' + bodyCls + '">' + escapeHtml(step.body) + '</span>' +
+          '</div>';
+      });
+      html += '</div>';
+      if (ex.note) html += '<p class="modal-note">' + escapeHtml(ex.note) + '</p>';
+      bodyEl.innerHTML = html;
+    }
+
+    function open(eraKey) {
+      currentEra = eraKey;
+      lastFocused = document.activeElement;
+      render(eraKey);
+      modal.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      closeBtn.focus();
+    }
+
+    function close() {
+      modal.classList.remove('open');
+      document.body.style.overflow = '';
+      if (lastFocused && lastFocused.focus) lastFocused.focus();
+    }
+
+    function replay() {
+      if (!currentEra) return;
+      render(currentEra); // rebuilding the nodes restarts their CSS animations
+    }
+
+    document.querySelectorAll('[data-era]').forEach(function (el) {
+      if (el.classList.contains('era')) return; // skip the section wrapper itself
+      el.addEventListener('click', function () { open(el.getAttribute('data-era')); });
+      if (el.getAttribute('role') === 'button') {
+        el.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(el.getAttribute('data-era')); }
+        });
+      }
+    });
+
+    closeBtn.addEventListener('click', close);
+    replayBtn.addEventListener('click', replay);
+    modal.addEventListener('click', function (e) { if (e.target === modal) close(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.classList.contains('open')) close(); });
   })();
 </script>
 </body>
