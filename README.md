@@ -216,7 +216,9 @@ greenfield, and a recommended build order for what's next.
 pytest tests/
 ```
 
-## Research Paper : https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7236720
+## Research Paper :
+
+https://papers.ssrn.com/sol3/papers.cfm?abstract_id=7236720
 
 ## Developer
 
