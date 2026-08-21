@@ -33,6 +33,7 @@ logger = get_logger(__name__)
 
 _PAGE_PATH = Path(__file__).parent / "static" / "index.html"
 _ENGINEERING_FLOW_PATH = Path(__file__).parent / "static" / "engineering-flow.html"
+_ALL_AI_ENGINEERING_PATH = Path(__file__).parent / "static" / "all-ai-engineering.html"
 _MAX_HISTORY = 400
 
 
@@ -73,6 +74,11 @@ class WebMirrorServer:
             # A static, standalone explainer page — no bus/WebSocket wiring,
             # unlike everything else this server serves.
             return _ENGINEERING_FLOW_PATH.read_text(encoding="utf-8")
+
+        @app.get("/all-ai-engineering", response_class=HTMLResponse)
+        async def all_ai_engineering() -> str:
+            # Same deal: a static reference page, no bus/WebSocket wiring.
+            return _ALL_AI_ENGINEERING_PATH.read_text(encoding="utf-8")
 
         @app.get("/api/history")
         async def history() -> list[dict]:

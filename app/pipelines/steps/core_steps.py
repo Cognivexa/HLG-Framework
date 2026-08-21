@@ -2,6 +2,7 @@
 generation) of the Harness pipeline — cheap, deterministic bookkeeping."""
 from __future__ import annotations
 
+from app.core.agent_catalog import format_selection_summary
 from app.pipelines.base import PipelineContext, StepResult
 
 
@@ -24,6 +25,21 @@ def identify_affected_files(ctx: PipelineContext) -> StepResult:
         status="success",
         detail=f"{len(affected)} Python file(s) affected.",
         data={"affected_files": affected},
+    )
+
+
+def select_specialist_agents(ctx: PipelineContext) -> StepResult:
+    """Reports the specialist agents/skills (app.core.agent_catalog) already
+    auto-selected for `ctx.changed_files` — selection itself happens once,
+    up front in `run_*_pipeline`, before this step (or any other) runs, so
+    every step sees the same list regardless of execution order."""
+    entries = ctx.selected_agents
+    return StepResult(
+        step_id="select_specialist_agents",
+        step_name="Select specialist agents/skills",
+        status="success",
+        detail=format_selection_summary(entries, len(ctx.changed_files)),
+        data={"selected": [e.slug for e in entries]},
     )
 
 

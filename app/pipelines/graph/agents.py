@@ -11,6 +11,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
+from app.core.agent_catalog import AgentCatalogEntry, with_specialist_guidance
+from app.core.llm.base import ProviderError
+from app.core.skills import with_skills
 from app.pipelines.base import PipelineContext, StepResult
 from app.pipelines.steps import (
     ai_steps,
@@ -23,6 +26,7 @@ from app.pipelines.steps import (
     secrets_steps,
     test_steps,
 )
+from app.pipelines.steps.ai_steps import _read_changed_sources
 
 
 @dataclass
@@ -33,7 +37,50 @@ class GraphNode:
     depends_on: tuple[str, ...] = ()
 
 
-def build_agent_graph() -> dict[str, GraphNode]:
+def _make_specialist_node_fn(entry: AgentCatalogEntry) -> Callable[[PipelineContext], StepResult]:
+    """Builds the node function for one auto-selected specialist — this is
+    Graph Engineering's clearest expression of "a node can be a full agent,
+    not just a fixed function": the node's entire behavior comes from an
+    agents/*.md or skills/*/SKILL.md file picked at run time, not from code
+    written for this specific specialty."""
+    step_id = f"specialist_{entry.slug}"
+    step_name = f"{entry.name} (Specialist Agent)"
+
+    def run(ctx: PipelineContext) -> StepResult:
+        model = ctx.settings.models.graph_review_model or ctx.settings.models.harness_review_model
+        provider_id = ctx.settings.models.graph_review_provider or ctx.settings.models.harness_review_provider
+        if not model:
+            return StepResult(step_id=step_id, step_name=step_name, status="skipped", detail="No Graph review model selected in Settings.")
+
+        source = _read_changed_sources(ctx)
+        if not source.strip():
+            return StepResult(step_id=step_id, step_name=step_name, status="skipped", detail="No reviewable source in this change set.")
+
+        base_prompt = (
+            f"You are acting as this project's {entry.name} specialist. Review the following "
+            "changed file(s) through that lens specifically — flag only what's relevant to your "
+            "specialty. Be concise; if nothing in your specialty applies here, say so in one sentence."
+        )
+        try:
+            review = ctx.llm_client.chat(
+                provider_id=provider_id,
+                model=model,
+                prompt=source,
+                system=with_skills(with_specialist_guidance(base_prompt, [entry]), ctx.project.root),
+                temperature=ctx.settings.temperature,
+                label=f"{entry.name} Specialist Agent",
+                run_id=ctx.run_id,
+                settings_attrs=("graph_review_provider", "graph_review_model"),
+            )
+        except ProviderError as exc:
+            return StepResult(step_id=step_id, step_name=step_name, status="failed", detail=str(exc))
+
+        return StepResult(step_id=step_id, step_name=step_name, status="success", detail=review[:500], data={"full_review": review})
+
+    return run
+
+
+def build_agent_graph(selected_agents: list[AgentCatalogEntry] | tuple[AgentCatalogEntry, ...] = ()) -> dict[str, GraphNode]:
     nodes: dict[str, GraphNode] = {}
 
     def add(node_id: str, label: str, fn, depends_on: tuple[str, ...] = ()) -> None:
@@ -57,6 +104,9 @@ def build_agent_graph() -> dict[str, GraphNode]:
         "code_improvement", "Code Improvement Agent", ai_steps.suggest_code_improvements,
         ("security_scan", "build_verification", "unit_tests", "static_analysis"),
     )
+
+    for entry in selected_agents:
+        add(f"specialist_{entry.slug}", f"{entry.name} (Specialist Agent)", _make_specialist_node_fn(entry), ("project_analysis",))
 
     downstream_of_project_analysis = tuple(
         node_id for node_id in nodes if node_id not in ("file_monitoring", "project_analysis")

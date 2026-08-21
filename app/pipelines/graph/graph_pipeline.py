@@ -2,6 +2,7 @@
 executes it with real concurrency for independent nodes."""
 from __future__ import annotations
 
+from app.core.agent_catalog import select_for_changed_files
 from app.core.events import PipelineEvent, bus
 from app.core.llm_client import LLMClient
 from app.core.logging_setup import get_logger
@@ -23,6 +24,7 @@ def run_graph_pipeline(
 ) -> PipelineContext:
     run_id = new_run_id()
     project = project or build_project_context(project_path)
+    selected_agents = select_for_changed_files(changed_files)
     ctx = PipelineContext(
         run_id=run_id,
         project_path=project_path,
@@ -30,12 +32,13 @@ def run_graph_pipeline(
         changed_files=changed_files,
         settings=settings,
         llm_client=llm_client,
+        selected_agents=selected_agents,
     )
 
     bus.pipeline_updated.emit(PipelineEvent(pipeline="graph", run_id=run_id, project_path=project_path, status="started"))
     logger.info("Graph run %s started for %s (%d changed file(s))", run_id, project_path, len(changed_files))
 
-    nodes = route("file_saved")
+    nodes = route("file_saved", selected_agents=selected_agents)
     run_graph(nodes, ctx, run_id)
 
     final = ctx.results.get("final_verification")

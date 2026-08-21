@@ -23,6 +23,8 @@
     --harness-dim: #5a3b22;
     --loop: #34d399;
     --loop-dim: #1f4a3d;
+    --graph: #f472b6;
+    --graph-dim: #5a2142;
 
     --font-display: "Segoe UI Variable Display", "Segoe UI Semibold", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
     --font-body: "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
@@ -133,6 +135,7 @@
   h1.title .context { color: var(--context); }
   h1.title .harness { color: var(--harness); }
   h1.title .loop { color: var(--loop); }
+  h1.title .graph { color: var(--graph); }
   h1.title .vs { color: var(--ink-faint); font-weight: 500; }
 
   p.subtitle {
@@ -195,10 +198,11 @@
     width: 2px;
     background: linear-gradient(
       to bottom,
-      var(--prompt) 0%, var(--prompt) 22%,
-      var(--context) 22%, var(--context) 47%,
-      var(--harness) 47%, var(--harness) 72%,
-      var(--loop) 72%, var(--loop) 100%
+      var(--prompt) 0%, var(--prompt) 18%,
+      var(--context) 18%, var(--context) 38%,
+      var(--harness) 38%, var(--harness) 58%,
+      var(--loop) 58%, var(--loop) 78%,
+      var(--graph) 78%, var(--graph) 100%
     );
     opacity: 0.35;
   }
@@ -635,6 +639,7 @@
   .era[data-era="context"]  { --accent: var(--context);  --accent-dim: var(--context-dim); }
   .era[data-era="harness"]  { --accent: var(--harness);  --accent-dim: var(--harness-dim); }
   .era[data-era="loop"]     { --accent: var(--loop);     --accent-dim: var(--loop-dim); }
+  .era[data-era="graph"]    { --accent: var(--graph);    --accent-dim: var(--graph-dim); }
 
   /* ---------- Bottom line ---------- */
 
@@ -642,7 +647,7 @@
     margin-top: 12px;
     border-radius: 16px;
     padding: 2px;
-    background: linear-gradient(90deg, var(--prompt), var(--context), var(--harness), var(--loop));
+    background: linear-gradient(90deg, var(--prompt), var(--context), var(--harness), var(--loop), var(--graph));
   }
 
   .bottom-line .inner {
@@ -668,6 +673,7 @@
   .bottom-line p b.context { color: var(--context); }
   .bottom-line p b.harness { color: var(--harness); }
   .bottom-line p b.loop { color: var(--loop); }
+  .bottom-line p b.graph { color: var(--graph); }
   .bottom-line p b { font-weight: 700; }
 
   footer.credit {
@@ -756,15 +762,17 @@
       <span class="prompt">Prompt</span> <span class="vs">vs</span>
       <span class="context">context</span> <span class="vs">vs</span>
       <span class="harness">harness</span> <span class="vs">vs</span>
-      <span class="loop">loop</span> engineering
+      <span class="loop">loop</span> <span class="vs">vs</span>
+      <span class="graph">graph</span> engineering
     </h1>
-    <p class="subtitle">The four eras of AI engineering. <strong>Each one builds on the last.</strong> None of them replaces what came before.</p>
+    <p class="subtitle">The five eras of AI engineering. <strong>Each one builds on the last.</strong> None of them replaces what came before.</p>
 
     <nav class="legend">
       <a class="chip" href="#era-prompt"><i style="background:var(--prompt)"></i>01 &middot; the input</a>
       <a class="chip" href="#era-context"><i style="background:var(--context)"></i>02 &middot; the frame</a>
       <a class="chip" href="#era-harness"><i style="background:var(--harness)"></i>03 &middot; the engine</a>
       <a class="chip" href="#era-loop"><i style="background:var(--loop)"></i>04 &middot; the routine</a>
+      <a class="chip" href="#era-graph"><i style="background:var(--graph)"></i>05 &middot; the system</a>
     </nav>
   </header>
 
@@ -1078,16 +1086,95 @@
       </div>
     </section>
 
+    <!-- ============ 05 GRAPH ============ -->
+    <section class="era" data-era="graph" id="era-graph">
+      <div class="badge">05</div>
+      <div class="era-body">
+        <div class="card">
+          <div class="text">
+            <p class="eyebrow">The system</p>
+            <h2><span class="num">05</span>Graph engineering</h2>
+            <p class="desc">
+              One agent that loops has <b>one main road.</b> Split the work into specialized
+              nodes — each with its own prompt, context, tools, and private loop — and wire
+              them together with edges, shared state, and routing rules, and
+              <span class="accent-word">the loop becomes a graph.</span>
+            </p>
+            <ol class="traits">
+              <li><span class="n">1</span> Each node is its own agent, carrying its own private loop</li>
+              <li><span class="n">2</span> Nodes hand off only through shared state, never their own context</li>
+              <li><span class="n">3</span> Routing rules decide where a pass — or a failure — goes next</li>
+              <li><span class="n">4</span> A loop hides its failure modes; a graph puts them on paper</li>
+            </ol>
+            <p class="truth">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              You stop trusting one agent to remember its own way back.
+            </p>
+            <p class="cite">
+              The shape isn't new — nodes, edges, and shared state have run production workflows
+              for decades. What changed is the node: it can now be a full agent instead of a
+              fixed function, and edges can route on a model's own verdict instead of hardcoded code.
+            </p>
+            <button class="see-it-work" data-era="graph">&#9654; See it work</button>
+          </div>
+
+          <div class="diagram-slot" data-era="graph" role="button" tabindex="0" aria-label="Open a worked example of graph engineering">
+            <span class="diagram-hint">Click to see it work &rarr;</span>
+            <figure>
+              <svg viewBox="0 0 320 200" role="img" aria-label="Research hands off to implement, which hands off to a verify decision; a pass continues to merge, a fail routes back to implement; every node also reads and writes shared state.">
+                <defs>
+                  <marker id="pa5" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto"><polygon points="0,0 7,3.5 0,7" fill="currentColor"/></marker>
+                </defs>
+
+                <line x1="14" y1="158" x2="300" y2="158" stroke="var(--graph)" stroke-width="1.4" stroke-dasharray="3 5" opacity="0.6"/>
+                <text x="157" y="174" text-anchor="middle" class="lbl lbl-dim">shared state</text>
+
+                <rect x="14" y="70" width="60" height="30" rx="7" class="node-line node-fill" stroke-width="1.4"/>
+                <text x="44" y="89" text-anchor="middle" class="lbl-strong">research</text>
+
+                <rect x="104" y="70" width="64" height="30" rx="7" class="node-line node-fill" stroke-width="1.4"/>
+                <text x="136" y="89" text-anchor="middle" class="lbl-strong">implement</text>
+
+                <g class="diamond-pulse">
+                  <polygon points="230,60 260,85 230,110 200,85" fill="var(--surface)" stroke="var(--graph)" stroke-width="1.4"/>
+                  <text x="230" y="82" text-anchor="middle" class="lbl" style="font-size:8px">verify</text>
+                  <text x="230" y="92" text-anchor="middle" class="lbl lbl-dim" style="font-size:7px">pass?</text>
+                </g>
+
+                <rect x="270" y="70" width="40" height="30" rx="7" class="node-line node-fill" stroke-width="1.4"/>
+                <text x="290" y="89" text-anchor="middle" class="lbl-strong" style="font-size:9px">merge</text>
+
+                <line x1="74" y1="85" x2="102" y2="85" stroke="currentColor" stroke-width="1.5" class="flow-dash" marker-end="url(#pa5)"/>
+                <line x1="168" y1="85" x2="198" y2="85" stroke="currentColor" stroke-width="1.5" class="flow-dash" marker-end="url(#pa5)"/>
+                <line x1="260" y1="85" x2="268" y2="85" stroke="var(--graph)" stroke-width="1.5" class="flow-dash" marker-end="url(#pa5)"/>
+                <text x="264" y="77" text-anchor="middle" class="lbl lbl-dim" style="font-size:7px">pass</text>
+
+                <path d="M230 60 Q230 30 136 30 Q120 30 120 68" fill="none" stroke="var(--ink-faint)" stroke-width="1.3" stroke-dasharray="3 4" marker-end="url(#pa5)"/>
+                <text x="178" y="24" text-anchor="middle" class="lbl lbl-dim" style="font-size:7px">fail</text>
+
+                <line x1="44" y1="100" x2="44" y2="158" class="node-line" stroke-width="1.1" stroke-dasharray="2 3"/>
+                <line x1="136" y1="100" x2="136" y2="158" class="node-line" stroke-width="1.1" stroke-dasharray="2 3"/>
+                <line x1="290" y1="100" x2="290" y2="158" class="node-line" stroke-width="1.1" stroke-dasharray="2 3"/>
+                <circle r="3" fill="var(--graph)" class="spoke-pulse" style="offset-path:path('M136 100 L136 158 L136 100')"/>
+              </svg>
+              <figcaption>Verify routes a pass to merge and a fail back to implement — every node reads and writes the same shared state.</figcaption>
+            </figure>
+          </div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <div class="bottom-line">
     <div class="inner">
       <h3>The bottom line</h3>
       <p>
-        Prompts did not die. Context did not die. The harness did not die.<br />
+        Prompts did not die. Context did not die. The harness did not die. The loop did not die.<br />
         Each era adds a new layer. You still write <b class="prompt">prompts</b>.
         You still curate <b class="context">context</b>. You still build a <b class="harness">harness</b>.
-        Now you also design the <b class="loop">loop</b> that runs it all.
+        You still design the <b class="loop">loop</b> that runs it. Now you also draw the
+        <b class="graph">graph</b> that connects several of them.
       </p>
     </div>
   </div>
@@ -1098,7 +1185,7 @@
     </ul>
   </div>
 
-  <footer class="credit">era of ai engineering &middot; prompt &rarr; context &rarr; harness &rarr; loop</footer>
+  <footer class="credit">era of ai engineering &middot; prompt &rarr; context &rarr; harness &rarr; loop &rarr; graph</footer>
 
 </div>
 
@@ -1185,6 +1272,21 @@
           { tag: 'ITER 3', body: 'act: write tests for utils.py  →  check: coverage 86%  →  goal met', good: true },
         ],
         note: 'No one was watching between iterations — the loop kept acting and checking on its own until the goal held true.',
+      },
+      graph: {
+        title: '05 &middot; Graph engineering, worked example',
+        sub: 'The same maker-checker loop, split into nodes that hand off through shared state.',
+        input: 'Goal: fix the login page bug',
+        steps: [
+          { tag: 'RESEARCH', body: 'reads the bug report + code  →  writes requirements to shared state', good: true },
+          { tag: 'IMPLEMENT', body: 'reads requirements from shared state  →  writes code (own private loop, up to 3 tries)' },
+          { tag: 'VERIFY', body: 'fresh context — never sees implement\'s reasoning  →  runs tests  →  review: fail', bad: true },
+          { tag: 'ROUTE: fail', body: 'back to IMPLEMENT, not research — the requirements were correct, the code wasn\'t' },
+          { tag: 'IMPLEMENT (retry)', body: 'writes a second version  →  writes code to shared state' },
+          { tag: 'VERIFY (retry)', body: 'runs tests again  →  review: pass', good: true },
+          { tag: 'ROUTE: pass', body: 'to MERGE — commit and update shared state', good: true },
+        ],
+        note: 'Verify never inherited implement\'s reasoning — it only ever saw the code sitting in shared state. That\'s what makes the review independent.',
       },
     };
 

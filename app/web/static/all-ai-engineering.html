@@ -1,0 +1,1483 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>All AI Engineering — 103 terms, 13 clusters — HLG Framework</title>
+<style>
+  :root {
+    --bg: #070b16;
+    --surface: #10152a;
+    --surface-2: #141a33;
+    --line: #1f2745;
+    --line-soft: #171d38;
+    --ink: #e9edfb;
+    --ink-dim: #96a0c4;
+    --ink-faint: #5c6690;
+
+    /* canonical five-era colors — same hexes as /engineering-flow, reused
+       only inside the era-map widget so the two pages read as one system */
+    --prompt: #4f8dff;
+    --context: #b28cfb;
+    --harness: #fb923c;
+    --loop: #34d399;
+    --graph: #f472b6;
+
+    --font-display: "Segoe UI Variable Display", "Segoe UI Semibold", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Segoe UI Variable Text", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: "Cascadia Code", "Cascadia Mono", ui-monospace, "Consolas", "SFMono-Regular", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(680px 420px at 14% -6%, rgba(79, 141, 255, 0.12), transparent 60%),
+      radial-gradient(620px 460px at 88% 18%, rgba(178, 140, 251, 0.09), transparent 60%),
+      radial-gradient(720px 520px at 50% 100%, rgba(52, 211, 153, 0.06), transparent 60%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+
+  ::selection { background: rgba(79,141,255,0.28); color: var(--ink); }
+  a { color: inherit; }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: rgba(7, 11, 22, 0.86);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .topbar a.back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 6px 12px;
+    border-radius: 8px;
+  }
+
+  .topbar a.back:hover { color: var(--ink); border-color: var(--prompt); }
+  .topbar a.flow { margin-left: auto; }
+
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 28px 140px;
+  }
+
+  /* ---------- Header ---------- */
+
+  header.hero {
+    padding: 60px 0 40px;
+    max-width: 900px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    border: 1px solid var(--line);
+    background: var(--surface);
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 26px;
+  }
+
+  .kicker .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--loop);
+    box-shadow: 0 0 8px var(--loop);
+  }
+
+  h1.title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(30px, 4.8vw, 48px);
+    line-height: 1.14;
+    letter-spacing: -0.01em;
+    margin: 0 0 20px;
+    text-wrap: balance;
+  }
+
+  h1.title .num { color: var(--prompt); }
+  h1.title .num2 { color: var(--context); }
+
+  p.subtitle {
+    font-size: 16.5px;
+    color: var(--ink-dim);
+    max-width: 640px;
+    margin: 0 auto;
+    text-wrap: balance;
+  }
+
+  p.subtitle strong { color: var(--ink); font-weight: 600; }
+  p.subtitle a { color: var(--prompt); text-decoration: none; border-bottom: 1px dotted currentColor; }
+  p.subtitle a:hover { border-bottom-style: solid; }
+
+  /* ---------- Legend + search ---------- */
+
+  .legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 30px;
+  }
+
+  .legend .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-dim);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    padding: 6px 11px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .legend .chip:hover, .legend .chip:focus-visible { color: var(--ink); border-color: var(--ink-faint); }
+  .legend .chip i { width: 7px; height: 7px; border-radius: 2px; display: inline-block; }
+
+  .search-bar {
+    position: sticky;
+    top: 49px;
+    z-index: 15;
+    margin: 34px auto 0;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(16, 21, 42, 0.92);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 10px 14px;
+  }
+
+  .search-bar svg { flex: none; color: var(--ink-faint); }
+
+  .search-bar input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 13.5px;
+  }
+
+  .search-bar input::placeholder { color: var(--ink-faint); }
+
+  .search-bar .match-count {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    white-space: nowrap;
+  }
+
+  .no-results {
+    display: none;
+    text-align: center;
+    color: var(--ink-faint);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 60px 0;
+  }
+
+  /* ---------- Timeline layout ---------- */
+
+  .timeline-items {
+    position: relative;
+    margin-top: 64px;
+  }
+
+  .timeline-items::before {
+    content: "";
+    position: absolute;
+    left: 27px;
+    top: 6px;
+    bottom: 70px;
+    width: 2px;
+    background: linear-gradient(
+      to bottom,
+      var(--prompt) 0%, var(--prompt) 8%,
+      var(--context) 8%, var(--context) 20%,
+      var(--harness) 20%, var(--harness) 55%,
+      var(--loop) 55%, var(--loop) 70%,
+      var(--ink-faint) 70%, var(--ink-faint) 100%
+    );
+    opacity: 0.3;
+  }
+
+  .cluster {
+    position: relative;
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 0 28px;
+    padding-bottom: 46px;
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+
+  .cluster.in-view { opacity: 1; transform: translateY(0); }
+  .cluster:last-of-type { padding-bottom: 0; }
+
+  .cluster .badge {
+    position: sticky;
+    top: 96px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 15px;
+    background: var(--surface);
+    border: 2px solid var(--line);
+    color: var(--ink-faint);
+    transition: border-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+    grid-column: 1;
+    align-self: start;
+  }
+
+  .cluster.in-view .badge {
+    color: var(--accent);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px var(--accent-dim);
+  }
+
+  .cluster-body { grid-column: 2; min-width: 0; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 28px 30px 30px;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .cluster .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 8px;
+  }
+
+  .cluster h2 {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.005em;
+    max-width: 480px;
+  }
+
+  .cluster h2 .n {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--ink-faint);
+    margin-right: 10px;
+    font-size: 17px;
+  }
+
+  .cluster p.desc {
+    color: var(--ink-dim);
+    font-size: 14px;
+    margin: 16px 0 4px;
+    max-width: 640px;
+  }
+
+  .cluster p.desc b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- Era-map widget ---------- */
+
+  .era-map {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 7px;
+  }
+
+  .era-map-row { display: flex; gap: 6px; }
+
+  .era-map-row .edot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-mono);
+    font-size: 9.5px;
+    font-weight: 700;
+    border: 1.5px solid var(--line);
+    color: var(--ink-faint);
+    background: var(--surface-2);
+  }
+
+  .era-map-row .edot.on-prompt   { border-color: var(--prompt);   color: var(--prompt);   box-shadow: 0 0 0 3px rgba(79,141,255,0.16); }
+  .era-map-row .edot.on-context  { border-color: var(--context);  color: var(--context);  box-shadow: 0 0 0 3px rgba(178,140,251,0.16); }
+  .era-map-row .edot.on-harness  { border-color: var(--harness);  color: var(--harness);  box-shadow: 0 0 0 3px rgba(251,146,60,0.16); }
+  .era-map-row .edot.on-loop     { border-color: var(--loop);     color: var(--loop);     box-shadow: 0 0 0 3px rgba(52,211,153,0.16); }
+  .era-map-row .edot.on-graph    { border-color: var(--graph);    color: var(--graph);    box-shadow: 0 0 0 3px rgba(244,114,182,0.16); }
+
+  .era-map-row .edot.dim-prompt  { border-color: rgba(79,141,255,0.4);  color: rgba(79,141,255,0.55); }
+  .era-map-row .edot.dim-context { border-color: rgba(178,140,251,0.4); color: rgba(178,140,251,0.55); }
+  .era-map-row .edot.dim-harness { border-color: rgba(251,146,60,0.4);  color: rgba(251,146,60,0.55); }
+  .era-map-row .edot.dim-loop    { border-color: rgba(52,211,153,0.4); color: rgba(52,211,153,0.55); }
+  .era-map-row .edot.dim-graph   { border-color: rgba(244,114,182,0.4); color: rgba(244,114,182,0.55); }
+
+  .era-map-caption {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    color: var(--ink-faint);
+    text-align: right;
+    max-width: 180px;
+  }
+
+  /* ---------- Glossary grid ---------- */
+
+  .glossary {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 18px;
+    margin: 20px 0 0;
+    padding: 0;
+  }
+
+  .g-item {
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--line-soft);
+    border-radius: 10px;
+  }
+
+  .g-item dt {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--accent);
+    margin-bottom: 5px;
+  }
+
+  .g-item dd {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--ink-dim);
+    line-height: 1.52;
+  }
+
+  .g-item dd a { color: var(--accent); text-decoration: none; border-bottom: 1px dotted currentColor; }
+  .g-item dd a:hover { border-bottom-style: solid; }
+
+  /* Per-cluster accent binding */
+  .cluster[data-cluster="input"]        { --accent: #4f8dff; --accent-dim: rgba(79,141,255,0.16); }
+  .cluster[data-cluster="context-mem"]  { --accent: #b28cfb; --accent-dim: rgba(178,140,251,0.16); }
+  .cluster[data-cluster="retrieval"]    { --accent: #22d3ee; --accent-dim: rgba(34,211,238,0.16); }
+  .cluster[data-cluster="harness"]      { --accent: #fb923c; --accent-dim: rgba(251,146,60,0.16); }
+  .cluster[data-cluster="tools"]        { --accent: #fbbf24; --accent-dim: rgba(251,191,36,0.16); }
+  .cluster[data-cluster="orchestration"]{ --accent: #f472b6; --accent-dim: rgba(244,114,182,0.16); }
+  .cluster[data-cluster="planning"]     { --accent: #818cf8; --accent-dim: rgba(129,140,248,0.16); }
+  .cluster[data-cluster="loops"]        { --accent: #34d399; --accent-dim: rgba(52,211,153,0.16); }
+  .cluster[data-cluster="evaluation"]   { --accent: #2dd4bf; --accent-dim: rgba(45,212,191,0.16); }
+  .cluster[data-cluster="governance"]   { --accent: #f87171; --accent-dim: rgba(248,113,113,0.16); }
+  .cluster[data-cluster="ops"]          { --accent: #38bdf8; --accent-dim: rgba(56,189,248,0.16); }
+  .cluster[data-cluster="archetypes"]   { --accent: #a78bfa; --accent-dim: rgba(167,139,250,0.16); }
+  .cluster[data-cluster="culture"]      { --accent: #a3e635; --accent-dim: rgba(163,230,53,0.16); }
+
+  /* ---------- Bottom line + sources ---------- */
+
+  .bottom-line {
+    margin-top: 12px;
+    border-radius: 16px;
+    padding: 2px;
+    background: linear-gradient(90deg, var(--prompt), var(--context), var(--harness), var(--loop));
+  }
+
+  .bottom-line .inner {
+    background: var(--surface);
+    border-radius: 14px;
+    padding: 28px 32px;
+  }
+
+  .bottom-line h3 {
+    font-family: var(--font-display);
+    font-size: 19px;
+    margin: 0 0 12px;
+  }
+
+  .bottom-line p {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--ink-dim);
+    max-width: 680px;
+  }
+
+  .bottom-line p b { color: var(--ink); font-weight: 700; }
+
+  .sources {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  .sources h4 {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 12px;
+  }
+
+  .sources ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 20px; }
+  .sources li { font-size: 12px; color: var(--ink-dim); }
+  .sources a { color: var(--ink-dim); text-decoration: none; border-bottom: 1px dotted var(--ink-faint); }
+  .sources a:hover { color: var(--prompt); border-bottom-color: var(--prompt); }
+
+  footer.credit {
+    text-align: center;
+    margin-top: 50px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    color: var(--ink-faint);
+  }
+
+  @media (max-width: 720px) {
+    .glossary { grid-template-columns: 1fr; }
+    .cluster { grid-template-columns: 40px 1fr; }
+    .cluster .badge { width: 40px; height: 40px; font-size: 12px; top: 60px; }
+    .timeline-items::before { left: 19px; }
+    .card-top { flex-direction: column; }
+    .era-map { align-items: flex-start; }
+    .era-map-caption { text-align: left; }
+    .sources ul { grid-template-columns: 1fr; }
+    .search-bar { top: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a class="back" href="/">&larr; Live Mirror</a>
+  <a class="back flow" href="/engineering-flow">The 5 core eras &rarr;</a>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="kicker"><span class="dot"></span> complete reference</span>
+    <h1 class="title">
+      <span class="num">103</span> names, <span class="num2">13</span> clusters, one job
+    </h1>
+    <p class="subtitle">
+      Prompt, context, harness, loop, and graph engineering (<a href="/engineering-flow">see the 5-era flow</a>)
+      are the trunk. Everything else people call "___ engineering" or "___ agents" this year is a
+      branch off one of those five. This page groups the other <strong>98 terms</strong> into
+      <strong>13 clusters</strong>, researched and cited where a real origin exists — and
+      labeled as generic industry jargon where it doesn't.
+    </p>
+
+    <nav class="legend">
+      <a class="chip" href="#cluster-input"><i style="background:#4f8dff"></i>01 input layer</a>
+      <a class="chip" href="#cluster-context-mem"><i style="background:#b28cfb"></i>02 context &amp; memory</a>
+      <a class="chip" href="#cluster-retrieval"><i style="background:#22d3ee"></i>03 retrieval &amp; knowledge</a>
+      <a class="chip" href="#cluster-harness"><i style="background:#fb923c"></i>04 harness &amp; runtime</a>
+      <a class="chip" href="#cluster-tools"><i style="background:#fbbf24"></i>05 tools &amp; protocols</a>
+      <a class="chip" href="#cluster-orchestration"><i style="background:#f472b6"></i>06 orchestration</a>
+      <a class="chip" href="#cluster-planning"><i style="background:#818cf8"></i>07 planning &amp; reasoning</a>
+      <a class="chip" href="#cluster-loops"><i style="background:#34d399"></i>08 loops &amp; reflection</a>
+      <a class="chip" href="#cluster-evaluation"><i style="background:#2dd4bf"></i>09 evaluation &amp; reliability</a>
+      <a class="chip" href="#cluster-governance"><i style="background:#f87171"></i>10 governance</a>
+      <a class="chip" href="#cluster-ops"><i style="background:#38bdf8"></i>11 ops &amp; systems</a>
+      <a class="chip" href="#cluster-archetypes"><i style="background:#a78bfa"></i>12 archetypes</a>
+      <a class="chip" href="#cluster-culture"><i style="background:#a3e635"></i>13 culture</a>
+    </nav>
+  </header>
+
+  <div class="search-bar">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="termSearch" type="text" placeholder="Filter across all 103 terms&hellip;" autocomplete="off" spellcheck="false" />
+    <span class="match-count" id="matchCount"></span>
+  </div>
+
+  <div class="timeline-items" id="timelineItems">
+
+    <!-- ============ 01 THE INPUT LAYER ============ -->
+    <section class="cluster" data-cluster="input" id="cluster-input">
+      <div class="badge">01</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">the input layer</p>
+              <h2><span class="n">01</span>Prompt, instruction &amp; system-prompt engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot on-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Mostly a Prompt-era concern</p>
+            </div>
+          </div>
+          <p class="desc">
+            Before any of the other twelve clusters exist, someone has to write down what the model
+            should do. This is the direct descendant of the <b>prompt engineering</b> era — split into
+            narrower specialties as teams needed to separate the one-time system rules from the
+            per-turn instructions, and to guarantee the shape of what comes back out.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Prompt Engineering</dt>
+              <dd>Crafting and iterating on the wording, examples, and formatting sent to a model to reliably get the output you want. No single coiner &mdash; it emerged organically around GPT-3 (2020&ndash;21) as practitioners found phrasing alone shifted quality.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Instruction Engineering</dt>
+              <dd>Writing just the task directive itself &mdash; the "do X" &mdash; as distinct from the examples, persona, or formatting around it. Informal industry usage, generally treated as a subset of prompt engineering rather than its own discipline.</dd>
+            </div>
+            <div class="g-item">
+              <dt>System Prompt Engineering</dt>
+              <dd>Designing the persistent, session-wide rules (persona, tone, guardrails) set once at the API's "system" role instead of repeated every turn. The "system" role is an OpenAI Chat Completions convention from 2023; the practice around it is generic industry usage.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Structured Outputs</dt>
+              <dd>Forcing a model's response to strictly match a schema, usually JSON, instead of free text. Real origin: <a href="https://openai.com/index/introducing-structured-outputs-in-the-api/" target="_blank" rel="noopener">OpenAI's Structured Outputs launch, Aug 2024</a>, which guaranteed 100% schema adherence.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 02 CONTEXT & MEMORY ============ -->
+    <section class="cluster" data-cluster="context-mem" id="cluster-context-mem">
+      <div class="badge">02</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">the frame, extended</p>
+              <h2><span class="n">02</span>Context &amp; memory engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot on-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Mostly a Context-era concern</p>
+            </div>
+          </div>
+          <p class="desc">
+            This is the <b>context engineering</b> era broken into the specific jobs a real system
+            has to do: deciding what to pull in, how to compress or cache it, when to drop it, and
+            &mdash; once a session ends &mdash; what an agent is allowed to remember next time.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Context Engineering</dt>
+              <dd>Curating the entire set of tokens the model sees &mdash; not just the prompt, but retrieved docs, tool output, and history. Coined by Shopify's Tobi L&uuml;tke (June 2025); formalized by <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">Anthropic's "Effective context engineering for AI agents," Sept 2025</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Orchestration</dt>
+              <dd>Coordinating which context-producing subsystems &mdash; retrieval, memory, tools &mdash; fire, in what order, for a given turn. Generic industry phrase; about runtime sequencing rather than curation strategy.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Routing</dt>
+              <dd>Deciding which context source or variant &mdash; which knowledge base, which memory partition &mdash; to send for a given query. Generic connector-word phrasing, no single origin.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Management</dt>
+              <dd>The operational lifecycle of what's inside the window: adding, expiring, and budgeting tokens across a session. Generic term, framed around window constraints rather than source coordination.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Compression</dt>
+              <dd>Shrinking context via summarization or extraction to fit a token budget while preserving meaning. Umbrella term; specific techniques (Microsoft's LLMLingua line) are named, the umbrella itself isn't.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Caching</dt>
+              <dd>Reusing previously-computed context &mdash; a KV-cache/prefix &mdash; across calls instead of resending it. Real origin: <a href="https://www.anthropic.com/news/prompt-caching" target="_blank" rel="noopener">Anthropic's prompt caching launch, Dec 2024</a> (up to 90% cost, 85% latency reduction).</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Pruning</dt>
+              <dd>Actively removing stale or low-relevance items from context mid-session, as opposed to compressing everything uniformly. Generic research/industry phrasing.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Retrieval</dt>
+              <dd>Fetching external context to insert into the prompt &mdash; the "R" step of RAG, reframed as a context-engineering concern rather than a retrieval-systems one.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Context Assembly</dt>
+              <dd>The final, concrete step of composing instructions, retrieved content, memory, and history into the actual token sequence sent to the model.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Memory Engineering</dt>
+              <dd>Designing the storage, write/update policy, and consolidation systems that let an agent persist and recall information across turns. Commonly grounded in <a href="https://arxiv.org/abs/2309.02427" target="_blank" rel="noopener">Sumers et al., "Cognitive Architectures for Language Agents" (CoALA), 2023</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Memory Management</dt>
+              <dd>The operational lifecycle of stored memories &mdash; writing, updating, expiring, deduplicating &mdash; the day-to-day counterpart to Memory Engineering's design work.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Long-Term Memory</dt>
+              <dd>Information persisted across sessions, e.g. in a vector store, that survives beyond the current context window. Borrowed from cognitive psychology's classic memory-systems model.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Short-Term Memory</dt>
+              <dd>In agent terms, the active context window / scratchpad for the current session &mdash; available "in-mind" for the task but not persisted afterward. CoALA calls this "working memory."</dd>
+            </div>
+            <div class="g-item">
+              <dt>Semantic Memory</dt>
+              <dd>Stored facts and general world knowledge an agent can draw on, not tied to a specific past event. Traces to Endel Tulving's 1972 semantic/episodic distinction, adopted directly by CoALA.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Episodic Memory</dt>
+              <dd>A log of specific past experiences, preserved with their original context rather than abstracted into general facts. Same Tulving 1972 lineage; the difference from semantic memory is instance-specific record vs. generalized fact.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 03 RETRIEVAL, KNOWLEDGE & SEARCH ============ -->
+    <section class="cluster" data-cluster="retrieval" id="cluster-retrieval">
+      <div class="badge">03</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">beyond the window</p>
+              <h2><span class="n">03</span>Retrieval, knowledge &amp; search engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot on-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Context-era, with Harness (tools call retrieval)</p>
+            </div>
+          </div>
+          <p class="desc">
+            Once context has to come from somewhere, you need a retrieval stack. This cluster runs
+            from the foundational RAG paper through its agentic and graph-based descendants, plus the
+            older discipline &mdash; knowledge engineering &mdash; that RAG borrowed its whole premise from.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Retrieval Engineering</dt>
+              <dd>The umbrella practice of building the retrieval stack that feeds an LLM &mdash; chunking, embedding, indexing, ranking &mdash; independent of any one source. Parent discipline for RAG Engineering and its variants.</dd>
+            </div>
+            <div class="g-item">
+              <dt>RAG Engineering</dt>
+              <dd>The applied, production-focused practice of building and operating retrieval-augmented generation pipelines. Builds on <a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks," NeurIPS 2020</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agentic RAG</dt>
+              <dd>RAG where an autonomous agent, not a fixed pipeline, decides when and whether to retrieve, and can iterate or use multiple tools mid-task. Formalized in <a href="https://arxiv.org/abs/2501.09136" target="_blank" rel="noopener">Singh et al., "Agentic Retrieval-Augmented Generation," Jan 2025</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Graph RAG</dt>
+              <dd>Retrieving from a knowledge graph of entities and relationships instead of flat vector similarity, for questions that need connected reasoning across a corpus. Origin: <a href="https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/" target="_blank" rel="noopener">Microsoft Research's GraphRAG, April 2024</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Adaptive RAG</dt>
+              <dd>Dynamically choosing a retrieval strategy &mdash; none, single-step, or multi-step &mdash; per query via a complexity classifier. Origin: <a href="https://aclanthology.org/2024.naacl-long.389/" target="_blank" rel="noopener">Jeong et al., "Adaptive-RAG," NAACL 2024</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Knowledge Engineering</dt>
+              <dd>Predates LLMs entirely &mdash; the classic AI discipline of structuring expert knowledge into ontologies and rule bases, rooted in 1970s&ndash;80s expert systems (Dendral, MYCIN). Modern use: building the ontologies/graphs that feed Graph RAG.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agentic Search</dt>
+              <dd>An agent iteratively planning, running, and refining multiple search queries against live sources until it has enough information, rather than one keyword lookup. Vendor-popularized term, no single paper.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Deep Research</dt>
+              <dd>A shipped, named capability where an agent autonomously browses and synthesizes findings into a long-form report. Origin: <a href="https://openai.com/index/introducing-deep-research/" target="_blank" rel="noopener">OpenAI's "Introducing deep research," Feb 2025</a>, followed by Gemini and others.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 04 HARNESS, SCAFFOLDING & RUNTIME ============ -->
+    <section class="cluster" data-cluster="harness" id="cluster-harness">
+      <div class="badge">04</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">the engine, disassembled</p>
+              <h2><span class="n">04</span>Harness, scaffolding &amp; runtime engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot on-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Mostly a Harness-era concern</p>
+            </div>
+          </div>
+          <p class="desc">
+            This is the <b>harness engineering</b> era taken apart into its layers: the harness
+            itself (model + tool wiring), the older "scaffolding" vocabulary it grew out of, and the
+            production runtime and infrastructure that host many harnesses at once.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Harness Engineering</dt>
+              <dd>Building and continuously hardening the system around a model &mdash; tools, guardrails, permanent fixes for recurring mistakes &mdash; so it operates reliably. Coined by Mitchell Hashimoto in <a href="https://mitchellh.com/writing/my-ai-adoption-journey" target="_blank" rel="noopener">"My AI Adoption Journey," Feb 2026</a>; later formalized on <a href="https://martinfowler.com/articles/harness-engineering.html" target="_blank" rel="noopener">Martin Fowler's site</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Harnesses</dt>
+              <dd>The concrete software layer wrapping a model: manages the API connection, dispatches tool calls, controls what fits in context. Shorthand &mdash; "Agent = Model + Harness" &mdash; per <a href="https://blog.langchain.com/the-anatomy-of-an-agent-harness/" target="_blank" rel="noopener">LangChain's "Anatomy of an Agent Harness"</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Scaffolding</dt>
+              <dd>The older, AI-safety/eval-community term &mdash; predates "harness," used for systems like AutoGPT &mdash; for the control loop and action-handling code around an LLM. No single coiner.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Scaffold Engineering</dt>
+              <dd>Not an independently established discipline. Shows up as a variant of the scaffolding vocabulary, paralleling "harness engineering" without its own distinct literature.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Runtime Engineering</dt>
+              <dd>The engineering discipline behind building and operating an agent runtime (below) &mdash; analogous to site reliability engineering, but for agents.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Runtime</dt>
+              <dd>The production hosting/execution layer that runs an agent's control loop at scale: invoking the model, executing tool calls, persisting state, and enforcing security boundaries across many sessions.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Infrastructure</dt>
+              <dd>The widest term in this cluster: the full stack &mdash; compute, retrieval, tooling, observability, governance &mdash; that runtimes and harnesses sit on top of.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Cognitive Architecture</dt>
+              <dd>Rooted in classical symbolic AI (Soar, ACT-R) decades before LLMs &mdash; models reasoning via distinct memory and control systems. Modern reuse: <a href="https://arxiv.org/abs/2309.02427" target="_blank" rel="noopener">CoALA, Sumers et al. 2023</a>, applying the same split to language agents.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 05 TOOLS & PROTOCOLS ============ -->
+    <section class="cluster" data-cluster="tools" id="cluster-tools">
+      <div class="badge">05</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">reaching outside the model</p>
+              <h2><span class="n">05</span>Tools &amp; protocol engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot on-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Mostly a Harness-era concern</p>
+            </div>
+          </div>
+          <p class="desc">
+            A harness is only as capable as what it can call. This cluster covers how a model
+            actually invokes something outside itself &mdash; from the vendor API that made it
+            standard, to the open protocol that now lets any agent talk to any tool server.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Tool Engineering</dt>
+              <dd>The practice of designing tool schemas and descriptions so a model calls them correctly. No canonical origin &mdash; an emerging counterpart to prompt engineering, focused on interfaces rather than wording.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Tool Use</dt>
+              <dd>The general capability of an LLM invoking external functions mid-reasoning. Broader than Function Calling &mdash; studied academically (Toolformer, ReAct) independent of any vendor API; key origin <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al., "ReAct," 2022</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Function Calling</dt>
+              <dd>The specific vendor API feature where a model outputs JSON matching a developer schema to request an action. Origin: <a href="https://openai.com/index/function-calling-and-other-api-updates/" target="_blank" rel="noopener">OpenAI, June 2023</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Tool Routing</dt>
+              <dd>The decision logic that selects which tool, among many available, to invoke for a given step &mdash; a sub-problem of orchestration focused on the "which" choice.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Tool Orchestration</dt>
+              <dd>Broader than routing: the end-to-end sequencing, chaining, and error-handling of multiple tool calls within a task.</dd>
+            </div>
+            <div class="g-item">
+              <dt>MCP / Model Context Protocol</dt>
+              <dd>An open protocol standardizing how AI apps connect to external data and tools via a client-server architecture. Origin: <a href="https://www.anthropic.com/news/model-context-protocol" target="_blank" rel="noopener">Anthropic, Nov 2024</a>. Distinct from function calling: MCP standardizes discovery and transport across many tool servers, not one model's call mechanism.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 06 ORCHESTRATION & MULTI-AGENT SYSTEMS ============ -->
+    <section class="cluster" data-cluster="orchestration" id="cluster-orchestration">
+      <div class="badge">06</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">more than one agent</p>
+              <h2><span class="n">06</span>Orchestration &amp; multi-agent systems</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot on-harness">H</span>
+                <span class="edot dim-loop">L</span>
+                <span class="edot dim-graph">G</span>
+              </div>
+              <p class="era-map-caption">Harness-era, spilling into Loop and Graph</p>
+            </div>
+          </div>
+          <p class="desc">
+            Once you have more than one moving part &mdash; multiple agents, multiple models, or
+            packaged capabilities that need dispatching &mdash; someone has to coordinate them. This
+            cluster covers that coordination layer, plus the two open protocols and the "compound
+            systems" framing that made multi-part AI applications a distinct architecture.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Agent Orchestration</dt>
+              <dd>Coordinating one or more agents' steps, state, and control flow to complete a task. Most often used for multi-agent coordination specifically.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Multi-Agent Orchestration</dt>
+              <dd>The specific case of two or more distinct agents coordinating &mdash; sequential handoff, parallel fan-out, hierarchical delegation.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Model Orchestration</dt>
+              <dd>Coordinating calls across multiple models &mdash; routing a query to different LLMs, chaining model calls with non-model steps. The unit coordinated is the model call, not an autonomous agent.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Model Routing</dt>
+              <dd>Selecting which model to send a given request to, by cost, latency, or task type &mdash; narrower than orchestration.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Skill Routing</dt>
+              <dd>Selecting which packaged Skill to invoke for a task, distinct from tool/model routing by unit &mdash; a Skill bundles instructions and resources, not a single function.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Skills</dt>
+              <dd>Modular, reusable folders of instructions, scripts, and resources an agent can load on demand for a specialized task. Announced by <a href="https://www.anthropic.com/news/skills" target="_blank" rel="noopener">Anthropic, Oct 2025</a>, released as a cross-vendor open standard in Dec 2025.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Sub-agents</dt>
+              <dd>A named, isolated agent instance a parent spawns to handle a bounded subtask and returns only a final result, keeping the parent's context clean. Documented in <a href="https://code.claude.com/docs/en/sub-agents" target="_blank" rel="noopener">Claude Code's sub-agent docs</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Delegation</dt>
+              <dd>The behavior of one agent handing a task to another &mdash; sub-agents are one implementation of it; delegation is the decision itself.</dd>
+            </div>
+            <div class="g-item">
+              <dt>A2A / Agent-to-Agent</dt>
+              <dd>An open protocol letting agents built by different vendors discover each other's capabilities and coordinate as peers, via Agent Cards. Origin: <a href="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/" target="_blank" rel="noopener">Google, April 2025</a>; contributed to the Linux Foundation, June 2025. MCP connects an agent to tools; A2A connects agents to each other.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Compound AI Systems</dt>
+              <dd>Systems where the best-performing application isn't one big model but multiple components &mdash; retrievers, verifiers, smaller models &mdash; working together. Coined in <a href="https://bair.berkeley.edu/blog/2024/02/18/compound-ai-systems/" target="_blank" rel="noopener">Berkeley BAIR's "The Shift from Models to Compound AI Systems," Feb 2024</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Compound Agents</dt>
+              <dd>An informal narrowing of Compound AI Systems to cases where the components are themselves autonomous, tool-using agents. No distinct canonical source of its own.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Graph Engineering</dt>
+              <dd>Organizing multiple agents, loops, tools, and evaluators into an explicit graph &mdash; nodes as work units, edges as handoffs (including conditional and rollback paths), a shared state all nodes read/write, and routing rules that decide what runs next &mdash; instead of leaving that control flow implicit inside one agent's context. A generalization of workflow engineering: a workflow node is a fixed function, a graph node can be a full agent that loops, uses tools, and retries on its own. The name went viral in July 2026, but the practice predates it &mdash; see <a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">Anthropic's Building Effective Agents (Dec 2024)</a> and <a href="https://docs.langchain.com/oss/python/langgraph/graph-api" target="_blank" rel="noopener">LangGraph</a> (open-sourced 2024).</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 07 PLANNING & REASONING ============ -->
+    <section class="cluster" data-cluster="planning" id="cluster-planning">
+      <div class="badge">07</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">thinking before acting</p>
+              <h2><span class="n">07</span>Planning &amp; reasoning</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot on-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Harness-era, spilling into Loop</p>
+            </div>
+          </div>
+          <p class="desc">
+            The step between "goal received" and "first action taken." This cluster covers how an
+            agent breaks a goal into steps, and the family of "reasoning model" techniques &mdash;
+            spending more compute at inference time &mdash; that made multi-step thinking a first-class
+            capability rather than a prompting trick.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Agent Planning</dt>
+              <dd>An agent formulating a sequence of steps or subgoals before or while acting, rather than answering in one shot. Draws on classical AI planning (STRIPS-era) repurposed for LLM agents.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agentic Planning</dt>
+              <dd>Near-synonymous with Agent Planning, but tends to describe planning as an explicit architectural module &mdash; a planner LLM plus an executor LLM &mdash; inside a broader multi-agent system.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Task Decomposition</dt>
+              <dd>Breaking a compound goal into smaller subtasks that can be solved independently. Real academic lineage: Hierarchical Task Network planning, Erol et al. 1994.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Reasoning Systems</dt>
+              <dd>The broadest term here &mdash; any architecture whose core value is multi-step inference (chain-of-thought, tree-of-thought, tool-augmented reasoning, "reasoning models" like o1). Test-Time Compute and ReAct are specific instances of it.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Test-Time Compute</dt>
+              <dd>Spending extra computation at inference time &mdash; longer chains of thought, sampling multiple candidates, verification &mdash; instead of only at training time. Popularized by OpenAI's o1 (Sept 2024); grounded in <a href="https://arxiv.org/abs/2408.03314" target="_blank" rel="noopener">Snell et al., "Scaling LLM Test-Time Compute Optimally," 2024</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Inference-Time Scaling</dt>
+              <dd>Largely a synonym for Test-Time Compute, used more when discussing the empirical scaling curves &mdash; how quality improves as inference compute increases.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Cognitive Loops</dt>
+              <dd>An informal term for the repeated perceive-think-act cycle an agent runs, echoing classical cognitive-architecture language (Soar, ACT-R). Broader and softer than ReAct &mdash; ReAct is one specific named implementation of this loop shape.</dd>
+            </div>
+            <div class="g-item">
+              <dt>ReAct Loops</dt>
+              <dd>The specific "reason + act" pattern where a model alternates generating a thought and taking an action, observing the result, and repeating. Origin: <a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al., "ReAct," 2022</a> &mdash; the direct ancestor of most modern tool-using agent loops.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 08 LOOPS, REFLECTION & VERIFICATION ============ -->
+    <section class="cluster" data-cluster="loops" id="cluster-loops">
+      <div class="badge">08</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">the routine, disassembled</p>
+              <h2><span class="n">08</span>Loops, reflection &amp; verification</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot on-loop">L</span>
+              </div>
+              <p class="era-map-caption">Mostly a Loop-era concern</p>
+            </div>
+          </div>
+          <p class="desc">
+            This is the <b>loop engineering</b> era split into its actual mechanisms: loops built
+            around self-critique, loops built around an external correctness check, and the question
+            of which party &mdash; human or model &mdash; sits inside the loop doing the checking.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Loop Engineering</dt>
+              <dd>Designing an agent's repeated control cycle &mdash; generate, check, revise, act &mdash; as a deliberate engineering artifact, not an incidental prompt chain. Umbrella term for this cluster.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Reflection Loops</dt>
+              <dd>A loop built around a model critiquing its own output and feeding that critique back in to improve the next attempt. Operationalized in <a href="https://arxiv.org/abs/2303.17651" target="_blank" rel="noopener">Madaan et al., "Self-Refine," 2023</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Verification Loops</dt>
+              <dd>A loop where each step or final output is checked against an explicit correctness signal &mdash; unit tests, a verifier model, execution feedback &mdash; before it's accepted or retried. Grounded in <a href="https://arxiv.org/abs/2305.20050" target="_blank" rel="noopener">Lightman et al., "Let's Verify Step by Step," 2023</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Self-Reflection</dt>
+              <dd>A model generating natural-language critique of its own prior output or trajectory, stored and reused. Canonical origin: <a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">Shinn et al., "Reflexion," NeurIPS 2023</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Self-Correction</dt>
+              <dd>A model revising its own output after detecting an error &mdash; with a caveat: <a href="https://arxiv.org/abs/2310.01798" target="_blank" rel="noopener">Huang et al., 2023</a> found intrinsic self-correction, without external feedback, often fails or hurts performance.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Self-Verification</dt>
+              <dd>Narrower than self-correction: checking whether an answer is correct without necessarily fixing it, often used to select among sampled candidates (best-of-N with a verifier).</dd>
+            </div>
+            <div class="g-item">
+              <dt>Human-in-the-Loop</dt>
+              <dd>A workflow where a human reviews, approves, or corrects outputs at one or more points, rather than fully autonomous operation. Traces to cybernetics and control theory (Norbert Wiener, 1940s).</dd>
+            </div>
+            <div class="g-item">
+              <dt>Model-in-the-Loop</dt>
+              <dd>The mirror image: a smaller or specialized model sits inside a workflow to check, filter, or flag a human's or another model's output for review.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 09 EVALUATION & RELIABILITY ============ -->
+    <section class="cluster" data-cluster="evaluation" id="cluster-evaluation">
+      <div class="badge">09</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">does it actually work</p>
+              <h2><span class="n">09</span>Evaluation &amp; reliability engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot on-loop">L</span>
+              </div>
+              <p class="era-map-caption">Loop-era, cross-cutting into Harness</p>
+            </div>
+          </div>
+          <p class="desc">
+            Every other cluster on this page eventually has to answer to this one. Evals decide
+            whether a change made things better or worse; reliability and safety engineering decide
+            whether a system is fit to run unattended; observability decides whether anyone can tell
+            what happened when it didn't.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Evaluation Engineering</dt>
+              <dd>Designing and maintaining the test harnesses, datasets, and scoring pipelines used to measure LLM/agent quality as a versioned, CI-integrated artifact rather than an ad hoc notebook.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Evals Engineering</dt>
+              <dd>Effectively a synonym, using the more colloquial "evals" shorthand cemented by OpenAI's open-source evals framework, 2023.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Automated Evals</dt>
+              <dd>Running evaluation checks programmatically &mdash; scripted assertions, unit tests, regression suites &mdash; without a human scoring each output by hand. LLM-as-a-Judge is one technique within this category, not a synonym for it.</dd>
+            </div>
+            <div class="g-item">
+              <dt>LLM-as-a-Judge</dt>
+              <dd>Using a strong LLM to score or compare other models' outputs in place of human raters. Origin: <a href="https://arxiv.org/abs/2306.05685" target="_blank" rel="noopener">Zheng et al., "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena," NeurIPS 2023</a> &mdash; found ~85% agreement with humans, exceeding human-human agreement.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Benchmarks</dt>
+              <dd>Standardized task suites measuring end-to-end agent capability &mdash; tool use, multi-step execution &mdash; rather than single-turn text quality. Concrete examples: SWE-bench, GAIA, AgentBench.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Reliability Engineering for Agents</dt>
+              <dd>Applying SRE-style discipline &mdash; uptime, failure-mode analysis, retries, monitoring &mdash; to agent systems, whose failure modes (looping, tool misuse) differ from ordinary software.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI Reliability Engineering</dt>
+              <dd>Broader than the agent-specific version: the general reliability, consistency, and reproducibility of any AI system in production, agentic or not.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI Safety Engineering</dt>
+              <dd>Preventing harmful or misaligned behavior specifically &mdash; red-teaming, refusal behavior, guardrails &mdash; as distinct from reliability's focus on uptime. Draws on the broader AI safety research field.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Observability</dt>
+              <dd>Instrumenting agents with traces, spans, and tool-call logs so engineers can see why an action was taken or where it failed. Emerging standard: <a href="https://opentelemetry.io/blog/2026/genai-observability/" target="_blank" rel="noopener">OpenTelemetry's GenAI semantic conventions</a>.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 10 GOVERNANCE & SANDBOXING ============ -->
+    <section class="cluster" data-cluster="governance" id="cluster-governance">
+      <div class="badge">10</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">what it's allowed to touch</p>
+              <h2><span class="n">10</span>Governance &amp; sandboxing</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot on-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Mostly a Harness-era concern</p>
+            </div>
+          </div>
+          <p class="desc">
+            As agents got real tool access &mdash; shells, browsers, production data &mdash; a
+            security-shaped layer had to exist alongside the harness: content-level constraints,
+            execution isolation, access control, and the organizational policy sitting above all three.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Guardrails</dt>
+              <dd>Programmatic checks &mdash; input/output filters, policy rules, content classifiers &mdash; placed between a user/app and an LLM to constrain what it can say or do. Popularized by <a href="https://github.com/NVIDIA-NeMo/Guardrails" target="_blank" rel="noopener">NVIDIA's NeMo Guardrails, 2023</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Sandboxing</dt>
+              <dd>Running an agent's code execution, shell, or browser actions inside an isolated environment (container, microVM) so a mistake can't touch the host system. Distinct from guardrails: an infrastructure boundary, not a content filter.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Permissions</dt>
+              <dd>The access-control layer defining which tools, data scopes, and actions a given agent is allowed to invoke &mdash; typically least-privilege, applied per task.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agent Governance</dt>
+              <dd>The organizational policy, oversight, and auditing layer for how agents are approved and monitored across an enterprise &mdash; the "who decides" layer above permissions and sandboxes.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 11 OPS & SYSTEMS ENGINEERING ============ -->
+    <section class="cluster" data-cluster="ops" id="cluster-ops">
+      <div class="badge">11</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">running it at scale</p>
+              <h2><span class="n">11</span>Ops &amp; systems engineering</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot dim-loop">L</span>
+                <span class="edot dim-graph">G</span>
+              </div>
+              <p class="era-map-caption">Spans all five eras at once</p>
+            </div>
+          </div>
+          <p class="desc">
+            The odd one out &mdash; this cluster doesn't map onto a single era because it's the
+            discipline of running all five eras in production at once: deployment, monitoring,
+            governance, and the serving-layer economics of every call the other clusters make.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>LLMOps</dt>
+              <dd>The operational discipline &mdash; deployment, prompt/version management, monitoring &mdash; for running LLM-powered applications in production. Explicitly framed by practitioners as "MLOps for LLMs."</dd>
+            </div>
+            <div class="g-item">
+              <dt>AgentOps</dt>
+              <dd>Extends LLMOps to handle multi-step agent behavior &mdash; tool calls, long time horizons, multi-agent interaction &mdash; rather than a single prompt/response.</dd>
+            </div>
+            <div class="g-item">
+              <dt>ModelOps</dt>
+              <dd>A broader, Gartner-defined discipline covering governance and lifecycle management of all operationalized AI/decision models, not just LLMs &mdash; model-type-agnostic and compliance-driven.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI Engineering</dt>
+              <dd>Building applications on top of pre-trained foundation models &mdash; via APIs, prompting, RAG, fine-tuning &mdash; rather than training models from scratch. Popularized as a distinct discipline by <a href="https://huyenchip.com/books/" target="_blank" rel="noopener">Chip Huyen's "AI Engineering," 2025</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI Systems Engineering</dt>
+              <dd>A broader, infrastructure-oriented framing: the end-to-end system &mdash; data pipelines, serving infra, monitoring &mdash; surrounding a model in production.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agentic Systems Engineering</dt>
+              <dd>Systems engineering applied specifically to multi-step, tool-using agents &mdash; the orchestration and state management that let agents run reliably over long horizons.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI Application Engineering</dt>
+              <dd>Building the user-facing product layer &mdash; UX, business logic, integration &mdash; around AI capabilities, as distinct from the model-serving or infra layer.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Inference Engineering</dt>
+              <dd>Serving trained models to users at scale &mdash; optimizing latency, cost, and throughput via quantization, batching, and cache management &mdash; distinct from training or prompting, which shape what a model says rather than how fast it runs.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Forward Engineering</dt>
+              <dd>Not a standard AI/ML term. In its actual usage (data modeling) it means translating a designed model into an implemented system &mdash; the opposite of reverse engineering. Rarely used in an AI context; included here because it appears on lists like this one.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 12 AGENT ARCHETYPES & WORKFLOWS ============ -->
+    <section class="cluster" data-cluster="archetypes" id="cluster-archetypes">
+      <div class="badge">12</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">what gets built</p>
+              <h2><span class="n">12</span>Agent archetypes &amp; workflows</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot dim-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot on-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Harness-era, spilling into Loop</p>
+            </div>
+          </div>
+          <p class="desc">
+            The shapes agents actually take once harness, tools, and loop are in place &mdash; from
+            the four workflow patterns that first made "agentic" a household word, to the specific
+            archetypes (coding, computer-use, deep) that now have their own tooling.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Agent Engineering</dt>
+              <dd>The practical discipline of designing and tuning an individual agent &mdash; its prompts, tools, memory, control loop. Agent-level, not system-level.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agentic Engineering</dt>
+              <dd>A broader framing than Agent Engineering &mdash; building agentic systems, orchestration, and delegation between sub-agents, rather than one agent's internals. The two terms are used somewhat interchangeably in practice.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Agentic Workflows</dt>
+              <dd>Multi-step processes where output is generated iteratively through defined patterns &mdash; reflection, tool use, planning, multi-agent collaboration. Popularized as an umbrella term by <a href="https://x.com/AndrewYNg/status/1773393357022298617" target="_blank" rel="noopener">Andrew Ng, March 2024</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Workflow Engineering</dt>
+              <dd>Designing the explicit control-flow layer &mdash; steps, branches, handoffs &mdash; that structures how agentic systems execute, one abstraction level above a single prompt.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Autonomous Agents</dt>
+              <dd>Systems that pursue a goal through multiple steps with minimal human intervention per step. Predates the current LLM-agent wave as a term from classic AI/robotics literature.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Deep Agents</dt>
+              <dd>Harnesses built for long-horizon tasks &mdash; deep research, complex coding &mdash; combining explicit planning, persistent file-system memory, and sub-agent spawning. Popularized by <a href="https://www.langchain.com/deep-agents" target="_blank" rel="noopener">LangChain, 2025</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Computer-Use Agents</dt>
+              <dd>Agents that control a computer through its actual GUI &mdash; mouse, keyboard, screenshots &mdash; rather than through APIs. Origin: <a href="https://www.anthropic.com/news/3-5-models-and-computer-use" target="_blank" rel="noopener">Anthropic's Computer Use, Oct 2024</a>.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Coding Agents</dt>
+              <dd>Agents scoped to software-engineering tasks &mdash; planning, editing across files, running tests &mdash; via a code/terminal interface rather than GUI control. Defined by early exemplars like Cognition's Devin and the academic SWE-agent project.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ 13 EMERGING PRACTICE & CULTURE ============ -->
+    <section class="cluster" data-cluster="culture" id="cluster-culture">
+      <div class="badge">13</div>
+      <div class="cluster-body">
+        <div class="card">
+          <div class="card-top">
+            <div>
+              <p class="eyebrow">how people actually work now</p>
+              <h2><span class="n">13</span>Emerging practice &amp; culture</h2>
+            </div>
+            <div class="era-map">
+              <div class="era-map-row">
+                <span class="edot on-prompt">P</span>
+                <span class="edot dim-context">C</span>
+                <span class="edot dim-harness">H</span>
+                <span class="edot dim-loop">L</span>
+              </div>
+              <p class="era-map-caption">Prompt-era practice, Harness-era discipline</p>
+            </div>
+          </div>
+          <p class="desc">
+            The newest cluster on this page, and the least settled &mdash; names for how the
+            day-to-day habit of writing software is visibly changing, from the viral tweet that named
+            the loose end of the spectrum to the more disciplined methodology built as a direct
+            reaction to it.
+          </p>
+          <dl class="glossary">
+            <div class="g-item">
+              <dt>Vibe Coding</dt>
+              <dd>Coding by describing intent in natural language and accepting AI-generated code largely without reading it line-by-line. Origin: <a href="https://x.com/karpathy/status/1886192184808149383" target="_blank" rel="noopener">Andrej Karpathy, Feb 2025</a> &mdash; later named Collins Dictionary's 2025 Word of the Year.</dd>
+            </div>
+            <div class="g-item">
+              <dt>Spec-Driven Development</dt>
+              <dd>Structuring AI-assisted coding around a written specification first, broken into small testable tasks an agent then implements &mdash; a deliberate reaction to vibe coding's lack of rigor for production work. Origins: <a href="https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/" target="_blank" rel="noopener">GitHub's Spec Kit</a> and AWS's Kiro, both 2025.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI-Native Development</dt>
+              <dd>Building software with AI embedded as a core architectural element from the outset, rather than bolted onto an existing workflow. Broader philosophy than any single methodology.</dd>
+            </div>
+            <div class="g-item">
+              <dt>AI-Native Software Engineering</dt>
+              <dd>The engineering-discipline framing of the same idea &mdash; applying "AI as architectural core" to the professional practice, review, and accountability structures of software engineering specifically. Used near-interchangeably with AI-Native Development.</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <p class="no-results" id="noResults">No terms match that search.</p>
+
+  <div class="bottom-line">
+    <div class="inner">
+      <h3>The bottom line</h3>
+      <p>
+        Almost none of these 103 names describe a new idea. Most describe an old idea &mdash;
+        planning, memory, verification, access control &mdash; meeting a model that can call tools
+        and run in a loop. <b>Prompt, context, harness, loop, and graph</b> are still the only five
+        layers you actually have to build. Everything on this page is either a part of one of those
+        five, or the discipline of operating them all at once.
+      </p>
+    </div>
+  </div>
+
+  <div class="sources">
+    <h4>Primary sources cited above</h4>
+    <ul>
+      <li><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents" target="_blank" rel="noopener">Anthropic — Effective context engineering for AI agents (2025)</a></li>
+      <li><a href="https://www.anthropic.com/news/prompt-caching" target="_blank" rel="noopener">Anthropic — Prompt caching (2024)</a></li>
+      <li><a href="https://www.anthropic.com/news/model-context-protocol" target="_blank" rel="noopener">Anthropic — Introducing the Model Context Protocol (2024)</a></li>
+      <li><a href="https://www.anthropic.com/news/skills" target="_blank" rel="noopener">Anthropic — Agent Skills (2025)</a></li>
+      <li><a href="https://www.anthropic.com/news/3-5-models-and-computer-use" target="_blank" rel="noopener">Anthropic — Computer use (2024)</a></li>
+      <li><a href="https://arxiv.org/abs/2210.03629" target="_blank" rel="noopener">Yao et al. — ReAct (2022)</a></li>
+      <li><a href="https://arxiv.org/abs/2303.11366" target="_blank" rel="noopener">Shinn et al. — Reflexion (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2303.17651" target="_blank" rel="noopener">Madaan et al. — Self-Refine (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2305.20050" target="_blank" rel="noopener">Lightman et al. — Let's Verify Step by Step (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2306.05685" target="_blank" rel="noopener">Zheng et al. — LLM-as-a-Judge / MT-Bench (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2309.02427" target="_blank" rel="noopener">Sumers et al. — Cognitive Architectures for Language Agents (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2310.01798" target="_blank" rel="noopener">Huang et al. — LLMs Cannot Self-Correct Reasoning Yet (2023)</a></li>
+      <li><a href="https://arxiv.org/abs/2408.03314" target="_blank" rel="noopener">Snell et al. — Scaling LLM Test-Time Compute Optimally (2024)</a></li>
+      <li><a href="https://arxiv.org/abs/2501.09136" target="_blank" rel="noopener">Singh et al. — Agentic RAG survey (2025)</a></li>
+      <li><a href="https://arxiv.org/abs/2005.11401" target="_blank" rel="noopener">Lewis et al. — Retrieval-Augmented Generation (2020)</a></li>
+      <li><a href="https://aclanthology.org/2024.naacl-long.389/" target="_blank" rel="noopener">Jeong et al. — Adaptive-RAG (2024)</a></li>
+      <li><a href="https://www.microsoft.com/en-us/research/blog/graphrag-unlocking-llm-discovery-on-narrative-private-data/" target="_blank" rel="noopener">Microsoft Research — GraphRAG (2024)</a></li>
+      <li><a href="https://bair.berkeley.edu/blog/2024/02/18/compound-ai-systems/" target="_blank" rel="noopener">Berkeley BAIR — Compound AI Systems (2024)</a></li>
+      <li><a href="https://developers.googleblog.com/en/a2a-a-new-era-of-agent-interoperability/" target="_blank" rel="noopener">Google — Agent2Agent protocol (2025)</a></li>
+      <li><a href="https://openai.com/index/function-calling-and-other-api-updates/" target="_blank" rel="noopener">OpenAI — Function calling (2023)</a></li>
+      <li><a href="https://openai.com/index/introducing-structured-outputs-in-the-api/" target="_blank" rel="noopener">OpenAI — Structured Outputs (2024)</a></li>
+      <li><a href="https://openai.com/index/introducing-deep-research/" target="_blank" rel="noopener">OpenAI — Introducing deep research (2025)</a></li>
+      <li><a href="https://mitchellh.com/writing/my-ai-adoption-journey" target="_blank" rel="noopener">Mitchell Hashimoto — My AI Adoption Journey (2026)</a></li>
+      <li><a href="https://blog.langchain.com/the-anatomy-of-an-agent-harness/" target="_blank" rel="noopener">LangChain — The Anatomy of an Agent Harness</a></li>
+      <li><a href="https://www.langchain.com/deep-agents" target="_blank" rel="noopener">LangChain — Deep Agents (2025)</a></li>
+      <li><a href="https://www.anthropic.com/engineering/building-effective-agents" target="_blank" rel="noopener">Anthropic — Building Effective Agents (2024)</a></li>
+      <li><a href="https://docs.langchain.com/oss/python/langgraph/graph-api" target="_blank" rel="noopener">LangGraph — Graph API docs</a></li>
+      <li><a href="https://x.com/AndrewYNg/status/1773393357022298617" target="_blank" rel="noopener">Andrew Ng — Agentic workflows (2024)</a></li>
+      <li><a href="https://x.com/karpathy/status/1886192184808149383" target="_blank" rel="noopener">Andrej Karpathy — Vibe coding (2025)</a></li>
+      <li><a href="https://github.blog/ai-and-ml/generative-ai/spec-driven-development-with-ai-get-started-with-a-new-open-source-toolkit/" target="_blank" rel="noopener">GitHub — Spec-driven development / Spec Kit (2025)</a></li>
+      <li><a href="https://huyenchip.com/books/" target="_blank" rel="noopener">Chip Huyen — AI Engineering (2025)</a></li>
+      <li><a href="https://github.com/NVIDIA-NeMo/Guardrails" target="_blank" rel="noopener">NVIDIA — NeMo Guardrails (2023)</a></li>
+      <li><a href="https://opentelemetry.io/blog/2026/genai-observability/" target="_blank" rel="noopener">OpenTelemetry — GenAI observability semantic conventions</a></li>
+    </ul>
+  </div>
+
+  <footer class="credit">all ai engineering &middot; 13 clusters &middot; 103 terms &middot; still just prompt &rarr; context &rarr; harness &rarr; loop &rarr; graph</footer>
+
+</div>
+
+<script>
+  (function () {
+    var clusters = document.querySelectorAll('.cluster');
+    if (!('IntersectionObserver' in window)) {
+      clusters.forEach(function (el) { el.classList.add('in-view'); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) entry.target.classList.add('in-view');
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    clusters.forEach(function (el) { io.observe(el); });
+  })();
+</script>
+
+<script>
+  (function () {
+    var input = document.getElementById('termSearch');
+    var countEl = document.getElementById('matchCount');
+    var noResults = document.getElementById('noResults');
+    var clusters = document.querySelectorAll('.cluster');
+    var totalTerms = document.querySelectorAll('.g-item').length;
+
+    input.addEventListener('input', function () {
+      var q = this.value.trim().toLowerCase();
+      var totalVisible = 0;
+      var anyClusterVisible = false;
+
+      clusters.forEach(function (cluster) {
+        var items = cluster.querySelectorAll('.g-item');
+        var visibleInCluster = 0;
+        items.forEach(function (item) {
+          var match = !q || item.textContent.toLowerCase().indexOf(q) !== -1;
+          item.style.display = match ? '' : 'none';
+          if (match) { visibleInCluster++; totalVisible++; }
+        });
+        var showCluster = !q || visibleInCluster > 0;
+        cluster.style.display = showCluster ? '' : 'none';
+        if (showCluster) anyClusterVisible = true;
+      });
+
+      countEl.textContent = q ? (totalVisible + ' of ' + totalTerms + ' match') : '';
+      noResults.style.display = (q && !anyClusterVisible) ? 'block' : 'none';
+    });
+  })();
+</script>
+</body>
+</html>

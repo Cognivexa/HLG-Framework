@@ -63,6 +63,8 @@
 
   #flowLink { margin-left: auto; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
   #flowLink:hover { background: #2a2d38; border-color: var(--accent); }
+  #allAiLink { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
+  #allAiLink:hover { background: #2a2d38; border-color: var(--accent); }
   #promptToggle { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 12.5px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
   #promptToggle:hover { background: #2a2d38; }
   #promptToggle .count { background: var(--accent); color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 11px; font-weight: 600; min-width: 14px; text-align: center; }
@@ -99,6 +101,7 @@
   <h1>HLG Framework</h1>
   <span class="sub">— live mirror of the desktop app, read-only</span>
   <a id="flowLink" href="/engineering-flow" target="_blank" rel="noopener">Engineering Flow</a>
+  <a id="allAiLink" href="/all-ai-engineering" target="_blank" rel="noopener">All AI Engineering</a>
   <button id="promptToggle" onclick="togglePromptDrawer()">
     AI Prompt Timeline <span class="count hidden" id="promptCount">0</span>
   </button>

@@ -18,6 +18,7 @@ from app.core.events import StepEvent, bus
 
 if TYPE_CHECKING:
     from app.config.settings import AppSettings
+    from app.core.agent_catalog import AgentCatalogEntry
     from app.core.llm_client import LLMClient
     from app.core.project_context import ProjectContext
 
@@ -41,6 +42,10 @@ class PipelineContext:
     llm_client: "LLMClient"
     results: dict[str, StepResult] = field(default_factory=dict)
     cache: dict = field(default_factory=dict)  # internal memoization, not surfaced as a step
+    # Specialist agents/skills (app.core.agent_catalog) auto-selected for
+    # this run's changed_files — populated before the runner starts, so
+    # every step sees the same selection regardless of execution order.
+    selected_agents: list["AgentCatalogEntry"] = field(default_factory=list)
 
     def get(self, step_id: str) -> StepResult | None:
         return self.results.get(step_id)

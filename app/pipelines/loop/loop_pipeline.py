@@ -27,6 +27,7 @@ import re
 import time
 from pathlib import Path
 
+from app.core.agent_catalog import format_selection_summary, select_for_changed_files, with_specialist_guidance
 from app.core.events import PipelineEvent, StepEvent, bus
 from app.core.llm.base import ProviderError
 from app.core.llm_client import LLMClient
@@ -42,6 +43,12 @@ from app.pipelines.steps import ai_steps, build_steps, doc_steps, quality_steps,
 from app.reports.report_generator import generate_and_save_reports
 
 logger = get_logger(__name__)
+
+# Loop Engineering IS the debug-and-fix loop, so its fix generation always
+# pulls in the debugging-methodology skill regardless of which files
+# changed — on top of whatever specialist(s) the changed files themselves
+# route to (see app.core.agent_catalog).
+_LOOP_ALWAYS_SPECIALISTS = ("debug-like-an-expert",)
 
 _CHECK_STEPS = (
     ("build_verification", build_steps.build_verification),
@@ -192,6 +199,12 @@ def run_loop_pipeline(
 
     _emit_step(run_id, "detect_changed_code", "Detect changed code", "success", f"{len(changed_files)} file(s) in scope.")
 
+    selected_agents = select_for_changed_files(changed_files, always=_LOOP_ALWAYS_SPECIALISTS)
+    _emit_step(
+        run_id, "select_specialist_agents", "Select specialist agents/skills", "success",
+        format_selection_summary(selected_agents, len(changed_files)),
+    )
+
     baseline = _run_checks(project, changed_files, settings, llm_client)
 
     # Architecture validation (missing tests/, requirements.txt, README) isn't
@@ -272,7 +285,8 @@ def run_loop_pipeline(
         try:
             response = llm_client.chat(
                 provider_id=settings.models.loop_fix_provider, model=fix_model, prompt=prompt,
-                system=with_skills(_FIX_SYSTEM_PROMPT, project.root), temperature=settings.temperature,
+                system=with_skills(with_specialist_guidance(_FIX_SYSTEM_PROMPT, selected_agents), project.root),
+                temperature=settings.temperature,
                 on_token=_make_stream_emitter(run_id, send_step_id, send_step_name),
                 label=f"Loop Fix Generation (iteration {i})", run_id=run_id,
                 settings_attrs=("loop_fix_provider", "loop_fix_model"),

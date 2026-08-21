@@ -47,6 +47,15 @@ def test_engineering_flow_route_serves_html():
     assert "Era of AI Engineering" in resp.text
 
 
+def test_all_ai_engineering_route_serves_html():
+    server = _server()
+    client = TestClient(server._app)
+    resp = client.get("/all-ai-engineering")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+    assert "All AI Engineering" in resp.text
+
+
 def test_history_route_starts_empty():
     server = _server()
     client = TestClient(server._app)

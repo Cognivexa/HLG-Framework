@@ -17,6 +17,7 @@ sequential 21-step run while keeping the exact same fixed display order
 """
 from __future__ import annotations
 
+from app.core.agent_catalog import select_for_changed_files
 from app.core.events import PipelineEvent, bus
 from app.core.llm_client import LLMClient
 from app.core.logging_setup import get_logger
@@ -31,6 +32,7 @@ HARNESS_STEPS: list[Step] = [
     Step("detect_changes", "Detect file changes", core_steps.detect_changes),
     Step("identify_affected", "Identify affected project files", core_steps.identify_affected_files),
     Step("load_context", "Load project context", core_steps.load_project_context),
+    Step("select_specialist_agents", "Select specialist agents/skills", core_steps.select_specialist_agents),
     Step("scan_api_keys", "Scan for API keys", secrets_steps.scan_api_keys),
     Step("scan_secrets", "Scan for secrets", secrets_steps.scan_secrets, depends_on=("scan_api_keys",)),
     Step("detect_passwords", "Detect passwords", secrets_steps.detect_passwords, depends_on=("scan_api_keys",)),
@@ -84,6 +86,7 @@ def run_harness_pipeline(
         changed_files=changed_files,
         settings=settings,
         llm_client=llm_client,
+        selected_agents=select_for_changed_files(changed_files),
     )
 
     runner = build_harness_runner()

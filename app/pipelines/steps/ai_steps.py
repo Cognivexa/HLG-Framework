@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from app.core.agent_catalog import with_specialist_guidance
 from app.core.llm.base import ProviderError
 from app.core.skills import with_skills
 from app.pipelines.base import PipelineContext, StepResult
@@ -55,7 +56,7 @@ def ollama_code_review(ctx: PipelineContext) -> StepResult:
             provider_id=ctx.settings.models.harness_review_provider,
             model=model,
             prompt=source,
-            system=with_skills(_REVIEW_SYSTEM_PROMPT, ctx.project.root),
+            system=with_skills(with_specialist_guidance(_REVIEW_SYSTEM_PROMPT, ctx.selected_agents), ctx.project.root),
             temperature=ctx.settings.temperature,
             label="AI Code Review",
             run_id=ctx.run_id,
@@ -148,8 +149,11 @@ def suggest_code_improvements(ctx: PipelineContext) -> StepResult:
             model=model,
             prompt=prompt,
             system=with_skills(
-                "Suggest specific, actionable code improvements to resolve the listed failing checks. "
-                "Be concise and concrete.",
+                with_specialist_guidance(
+                    "Suggest specific, actionable code improvements to resolve the listed failing checks. "
+                    "Be concise and concrete.",
+                    ctx.selected_agents,
+                ),
                 ctx.project.root,
             ),
             temperature=ctx.settings.temperature,
